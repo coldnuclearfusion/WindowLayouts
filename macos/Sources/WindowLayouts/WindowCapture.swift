@@ -11,8 +11,12 @@ struct CapturedWindow: Identifiable {
     let element: AXUIElement
     let displayID: String?
 
-    func makeEntry() -> WindowEntry {
-        WindowEntry(bundleID: bundleID, appName: appName, title: title, frame: frame, displayID: displayID)
+    /// includeTitle이 false면 제목을 비우고 "순서만"으로 찾게 저장한다.
+    func makeEntry(includeTitle: Bool = true) -> WindowEntry {
+        WindowEntry(bundleID: bundleID, appName: appName,
+                    title: includeTitle ? title : "",
+                    titleMatch: includeTitle ? .auto : .order,
+                    frame: frame, displayID: displayID)
     }
 }
 

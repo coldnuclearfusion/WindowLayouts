@@ -39,7 +39,7 @@ struct LayoutDetailView: View {
             }
 
             HStack {
-                Picker("실행 중이 아닌 앱이 있을 때:", selection: layoutBinding.launchPolicy) {
+                Picker("실행 중이 아니거나 창이 없는 앱이 있을 때:", selection: layoutBinding.launchPolicy) {
                     ForEach(LaunchPolicy.allCases) { policy in
                         Text(policy.label).tag(policy)
                     }
