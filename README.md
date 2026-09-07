@@ -1,2 +1,37 @@
 # WindowLayouts
-Save window layouts and restore them in one click from the menu bar. Remembers layouts per monitor setup, handles multi-window apps, and can launch missing apps. macOS now; Windows and Linux planned.
+
+Save window layouts and restore them in one click from the menu bar.
+
+- **Save** the current arrangement of windows, choosing which apps and windows to include.
+- **Restore** a layout instantly from the menu bar. A settings window lets you edit every window's title, position and size by hand, or edit the JSON file directly.
+- **Per monitor setup.** Each layout remembers the display configuration it was saved on. Layouts for the current setup are listed first; applying a layout from another setup remaps windows to the displays that are present.
+- **Multi-window apps.** Several windows of the same app are matched by title, then by order.
+- **Missing apps.** When an app in the layout isn't running: ask, launch it, or arrange only what's running (per layout).
+- **Raise on apply.** Optionally bring the layout's windows to the front, in the saved order.
+- Starts at login and lives in the menu bar, no Dock icon.
+
+## Platforms
+
+| Platform | Status | Directory |
+|---|---|---|
+| macOS 15+ | available | [`macos/`](macos/) |
+| Windows | planned | `windows/` |
+| Linux | planned | `linux/` |
+
+Layouts are stored as JSON (`layouts.json`) so the format can be shared across platforms.
+
+## Quick start (macOS)
+
+Requires macOS 15 or later and Xcode or the Command Line Tools.
+
+```bash
+git clone https://github.com/coldnuclearfusion/WindowLayouts.git
+cd WindowLayouts/macos
+./install.sh
+```
+
+Then allow the app under System Settings › Privacy & Security › Accessibility. See [`macos/README.md`](macos/README.md) (Korean) for details: code signing so the permission survives rebuilds, the JSON format, and installing on several Macs.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
