@@ -11,6 +11,7 @@ struct CaptureSheet: View {
 
     @State private var name = ""
     @State private var selected = Set<UUID>()
+    @AppStorage("saveWindowTitles") private var saveTitles = true
 
     private var isNewLayout: Bool { request.targetLayoutID == nil }
 
@@ -56,9 +57,11 @@ struct CaptureSheet: View {
             if request.windows.isEmpty {
                 emptyView
             } else {
-                Text("포함할 창을 선택하세요. 앱 이름 옆 체크로 그 앱의 창을 한꺼번에 켜고 끌 수 있습니다.")
+                Text("포함할 창을 선택하세요. 앱 이름을 누르면 그 앱의 창을 한꺼번에 켜고 끕니다.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)", isOn: $saveTitles)
+                    .font(.caption)
                 List {
                     ForEach(groups) { group in
                         Section {
@@ -76,9 +79,7 @@ struct CaptureSheet: View {
                                 }
                             }
                         } header: {
-                            Toggle(isOn: groupBinding(group)) {
-                                Text(group.name).bold()
-                            }
+                            groupHeader(group)
                         }
                     }
                 }
@@ -134,21 +135,32 @@ struct CaptureSheet: View {
         )
     }
 
-    private func groupBinding(_ group: AppGroup) -> Binding<Bool> {
-        Binding(
-            get: { group.windows.allSatisfy { selected.contains($0.id) } },
-            set: { on in
-                for w in group.windows {
-                    if on { selected.insert(w.id) } else { selected.remove(w.id) }
-                }
+    /// 앱 단위 전체 선택/해제. 계산값에 묶인 Toggle 대신 버튼을 써서
+    /// 창 하나를 해제할 때 앱 전체가 풀리던 문제를 피한다. 일부만 선택된 상태는 '−'로 표시.
+    private func groupHeader(_ group: AppGroup) -> some View {
+        let count = group.windows.filter { selected.contains($0.id) }.count
+        let all = count == group.windows.count
+        return Button {
+            for w in group.windows {
+                if all { selected.remove(w.id) } else { selected.insert(w.id) }
             }
-        )
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: all ? "checkmark.square.fill" : (count == 0 ? "square" : "minus.square.fill"))
+                    .foregroundStyle(count == 0 ? Color.secondary : Color.accentColor)
+                Text(group.name).bold()
+                Text("\(count)/\(group.windows.count)")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .help(all ? "이 앱의 창 모두 해제" : "이 앱의 창 모두 선택")
     }
 
     private func save() {
         let entries = request.windows
             .filter { selected.contains($0.id) }
-            .map { $0.makeEntry() }
+            .map { $0.makeEntry(includeTitle: saveTitles) }
         if let target = request.targetLayoutID {
             store.append(entries, to: target)
         } else {

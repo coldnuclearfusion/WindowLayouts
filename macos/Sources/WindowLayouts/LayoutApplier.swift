@@ -26,7 +26,7 @@ struct ApplyReport {
     var lines: [String] {
         var l: [String] = notes
         if !launched.isEmpty { l.append("실행함: " + launched.joined(separator: ", ")) }
-        if !notRunning.isEmpty { l.append("실행 중이 아니라 건너뜀: " + notRunning.joined(separator: ", ")) }
+        if !notRunning.isEmpty { l.append("실행하거나 창을 열지 않아 건너뜀: " + notRunning.joined(separator: ", ")) }
         if !unmatched.isEmpty { l.append("맞는 창을 못 찾음: " + unmatched.joined(separator: ", ")) }
         if !failed.isEmpty { l.append("위치 변경 실패: " + failed.joined(separator: ", ")) }
         return l
@@ -131,14 +131,22 @@ final class LayoutApplier {
             report.notes.append("저장 당시 모니터 구성(\(saved.name))과 지금(\(currentConfig.name))이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.")
         }
         let missing = bundleIDs.filter { runningApps(bundleID: $0).isEmpty }
+        // 프로세스는 살아 있지만 창이 하나도 없는 앱 (창을 다 닫아도 앱은 남아 있는 macOS 특성)
+        let windowless = bundleIDs.filter { id in
+            !missing.contains(id) && runningApps(bundleID: id).allSatisfy { AX.windows(for: $0).isEmpty }
+        }
+        let needsOpen = missing + windowless
         var skipped = Set<String>()
 
-        // 실행 안 된 앱 처리 (요구사항 6)
-        if !missing.isEmpty {
+        func label(_ bundleID: String) -> String {
+            layout.appName(for: bundleID) + (windowless.contains(bundleID) ? " (실행 중이지만 창 없음)" : "")
+        }
+
+        // 실행 안 된 앱, 창 없는 앱 처리 (요구사항 6)
+        if !needsOpen.isEmpty {
             var policy = layout.launchPolicy
             if policy == .ask {
-                let names = missing.map { layout.appName(for: $0) }
-                switch askAboutMissing(names, layoutName: layout.name) {
+                switch askAboutMissing(needsOpen.map(label), layoutName: layout.name) {
                 case .launch(let remember):
                     policy = .launchMissing
                     if remember { LayoutStore.shared.setLaunchPolicy(.launchMissing, for: layout.id) }
@@ -154,9 +162,10 @@ final class LayoutApplier {
 
             if policy == .launchMissing {
                 var toWait: [String: Int] = [:]
-                for bundleID in missing {
-                    if launch(bundleID: bundleID) {
-                        report.launched.append(layout.appName(for: bundleID))
+                for bundleID in needsOpen {
+                    let reopen = windowless.contains(bundleID)
+                    if launch(bundleID: bundleID, reopen: reopen) {
+                        report.launched.append(layout.appName(for: bundleID) + (reopen ? " (새 창)" : ""))
                         toWait[bundleID] = entries.filter { $0.bundleID == bundleID }.count
                     } else {
                         report.failed.append("\(layout.appName(for: bundleID)) (앱을 찾을 수 없음)")
@@ -165,9 +174,9 @@ final class LayoutApplier {
                 }
                 await waitForWindows(toWait)
             } else {
-                for bundleID in missing {
+                for bundleID in needsOpen {
                     skipped.insert(bundleID)
-                    report.notRunning.append(layout.appName(for: bundleID))
+                    report.notRunning.append(label(bundleID))
                 }
             }
         }
@@ -287,10 +296,11 @@ final class LayoutApplier {
         NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).filter { !$0.isTerminated }
     }
 
-    private func launch(bundleID: String) -> Bool {
+    /// 앱을 실행한다. 이미 실행 중인데 창이 없는 앱(reopen)이면 Dock 아이콘을 눌렀을 때처럼 새 창을 열게 한다.
+    private func launch(bundleID: String, reopen: Bool = false) -> Bool {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
         let config = NSWorkspace.OpenConfiguration()
-        config.activates = false
+        config.activates = reopen
         NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
         return true
     }
@@ -326,11 +336,11 @@ final class LayoutApplier {
     @MainActor
     private func askAboutMissing(_ names: [String], layoutName: String) -> MissingChoice {
         let alert = NSAlert()
-        alert.messageText = "실행 중이 아닌 앱이 있습니다"
-        alert.informativeText = "‘\(layoutName)’ 배치에 포함된 다음 앱이 실행 중이 아닙니다.\n\n"
+        alert.messageText = "실행 중이 아니거나 창이 없는 앱이 있습니다"
+        alert.informativeText = "‘\(layoutName)’ 배치에 포함된 다음 앱을 실행하거나 새 창을 열어야 합니다.\n\n"
             + names.map { "• \($0)" }.joined(separator: "\n")
-        alert.addButton(withTitle: "실행하고 배치")
-        alert.addButton(withTitle: "실행 중인 앱만 배치")
+        alert.addButton(withTitle: "실행/창 열고 배치")
+        alert.addButton(withTitle: "지금 있는 창만 배치")
         let cancel = alert.addButton(withTitle: "취소")
         cancel.keyEquivalent = "\u{1b}"
         alert.showsSuppressionButton = true

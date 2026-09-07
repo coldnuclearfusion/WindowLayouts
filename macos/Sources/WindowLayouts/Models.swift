@@ -12,8 +12,8 @@ enum LaunchPolicy: String, Codable, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .ask: return "매번 물어보기"
-        case .launchMissing: return "실행 안 된 앱은 실행하기"
-        case .runningOnly: return "실행 중인 앱만 배치"
+        case .launchMissing: return "실행하고 새 창 열기"
+        case .runningOnly: return "지금 있는 창만 배치"
         }
     }
 }
