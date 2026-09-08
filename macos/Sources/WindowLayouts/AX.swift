@@ -63,10 +63,10 @@ enum AX {
             usleep(250_000)
         }
         if bool(element, "AXFullScreen") == true {
-            log?("전체 화면 창이라 건너뜀")
+            log?(L("log.fullscreen_skip"))
             return .failed
         }
-        if let before = currentFrame(element) { log?("시작 \(before.shortDescription) → 목표 \(frame.shortDescription)") }
+        if let before = currentFrame(element) { log?(L("log.place_start", ["from": before.shortDescription, "to": frame.shortDescription])) }
 
         var anySuccess = false
         for attempt in 1...3 {
@@ -92,7 +92,7 @@ enum AX {
             usleep(60_000)
             guard let now = currentFrame(element) else { continue }
             let match = now.approximatelyEquals(frame, tolerance: 2)
-            log?("시도 \(attempt): 결과 \(now.shortDescription)\(match ? " ✓" : "")")
+            log?(L("log.place_attempt", ["attempt": String(attempt), "result": now.shortDescription]) + (match ? " ✓" : ""))
             if match { return .placed }
         }
         guard anySuccess, let now = currentFrame(element) else { return .failed }

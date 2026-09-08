@@ -27,8 +27,18 @@ public partial class App : Application
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         var store = LayoutStore.Shared;
-        ApplyLog.Write("앱 시작");
+        ApplyLog.Write(Loc.T("log.app_start"));
         _tray = new TrayIcon();
+        // 언어가 바뀌면 열려 있는 설정 창을 새 언어로 다시 만든다
+        Loc.Changed += () =>
+        {
+            if (Main == null) return;
+            var old = Main;
+            Main = null;
+            old.Close();
+            ShowMainWindow();
+            Main?.ShowGeneral();
+        };
         Ipc.StartServer(HandleArgs);
         HandleArgs(e.Args);
 
@@ -47,7 +57,7 @@ public partial class App : Application
                 var layout = LayoutStore.Shared.Layouts.FirstOrDefault(l =>
                     l.Name == key || string.Equals(l.Id.ToString(), key, StringComparison.OrdinalIgnoreCase));
                 if (layout != null) _ = LayoutApplier.Shared.Apply(layout);
-                else ApplyLog.Write("명령줄로 요청한 배치를 찾지 못함: " + key);
+                else ApplyLog.Write(Loc.T("log.cli_not_found", ("name", key)));
             }
             else if (args[i] == "--settings")
             {

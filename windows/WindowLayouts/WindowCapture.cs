@@ -62,7 +62,7 @@ public static class AppIdentity
         var aumid = Native.Aumid(realPid);
         if (aumid != null) return ("aumid:" + aumid, NameFromAumid(aumid), exe);
         if (exe != null) return ("exe:" + exe, NameFromExe(exe), exe);
-        return ("pid:" + pid, "알 수 없는 앱", null);
+        return ("pid:" + pid, Loc.T("app.unknown"), null);
     }
 
     public static string? ExePathOf(string appId) => appId.StartsWith("exe:", StringComparison.Ordinal) ? appId.Substring(4) : null;

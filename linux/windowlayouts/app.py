@@ -7,7 +7,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
-from . import applylog, capture  # noqa: E402
+from . import applylog, capture, l10n  # noqa: E402
+from .l10n import t  # noqa: E402
 from .applier import Applier  # noqa: E402
 from .store import LayoutStore  # noqa: E402
 from .tray import Tray  # noqa: E402
@@ -28,7 +29,8 @@ class App:
         self.applier.on_report(lambda: self.tray.rebuild())
         self._last_monitor_key = self.current_display_config().key
         GLib.timeout_add_seconds(5, self._poll_monitors)
-        applylog.write("앱 시작")
+        l10n.on_change(self._on_language_changed)
+        applylog.write(t("log.app_start"))
 
     # ---- 상태
 
@@ -67,6 +69,16 @@ class App:
         done.wait()
         return result.get("v", ("cancel", False))
 
+    def _on_language_changed(self) -> None:
+        """언어가 바뀌면 트레이 메뉴를 다시 만들고, 열려 있는 설정 창을 새 언어로 다시 연다"""
+        self.tray.rebuild()
+        if self.main_window is not None:
+            old = self.main_window
+            self.main_window = None
+            old.destroy_window()
+            self.show_settings()
+            self.main_window.show_general()
+
     def show_settings(self) -> None:
         if self.main_window is None:
             self.main_window = MainWindow(self)
@@ -101,11 +113,11 @@ class App:
                 if layout is not None:
                     self.apply_layout(layout)
                 else:
-                    applylog.write("명령줄로 요청한 배치를 찾지 못함: " + key)
+                    applylog.write(t("log.cli_not_found", name=key))
             elif a == "--settings":
                 self.show_settings()
             i += 1
 
     def quit(self) -> None:
-        applylog.write("앱 종료")
+        applylog.write(t("log.app_quit"))
         Gtk.main_quit()

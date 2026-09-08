@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 현재 열린 창 중 어떤 것을 배치에 넣을지 고르는 시트 (요구사항 7, 8)
+/// 현재 열린 창 중 어떤 것을 배치에 넣을지 고르는 시트
 struct CaptureSheet: View {
     let request: CaptureRequest
 
@@ -43,27 +43,27 @@ struct CaptureSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(isNewLayout ? "현재 창 배치 저장" : "현재 열린 창 추가")
+            Text(isNewLayout ? L("capture.title_new") : L("capture.title_add"))
                 .font(.title2.bold())
 
             if isNewLayout {
-                TextField("배치 이름", text: $name)
+                TextField(L("detail.name_placeholder"), text: $name)
                     .textFieldStyle(.roundedBorder)
             }
 
-            Label("모니터 구성: \(request.displayConfig.name)", systemImage: "display")
+            Label(L("capture.config", ["name": request.displayConfig.name]), systemImage: "display")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             if request.windows.isEmpty {
                 emptyView
             } else {
-                Text("포함할 창을 선택하세요. 앱 이름을 누르면 그 앱의 창을 한꺼번에 켜고 끕니다.")
+                Text(L("capture.hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle("창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)", isOn: $saveTitles)
+                Toggle(L("capture.save_titles"), isOn: $saveTitles)
                     .font(.caption)
-                Toggle("브라우저 창은 페이지 주소도 저장 (적용할 때 그 페이지 탭이 있는 창을 찾고, 없으면 새 창으로 엶)", isOn: $saveURLs)
+                Toggle(L("capture.save_urls"), isOn: $saveURLs)
                     .font(.caption)
                 List {
                     ForEach(groups) { group in
@@ -72,7 +72,7 @@ struct CaptureSheet: View {
                                 Toggle(isOn: windowBinding(w.id)) {
                                     HStack(alignment: .top) {
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(w.title.isEmpty ? "(제목 없음)" : w.title)
+                                            Text(w.title.isEmpty ? L("capture.untitled_window") : w.title)
                                                 .lineLimit(1)
                                                 .truncationMode(.middle)
                                             if let url = w.url, saveURLs {
@@ -99,12 +99,12 @@ struct CaptureSheet: View {
             }
 
             HStack {
-                Button("취소") { dismiss() }
+                Button(L("common.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Text("\(selected.count)개 창 선택됨")
+                Text(L("capture.selected_count", ["count": String(selected.count)]))
                     .foregroundStyle(.secondary)
-                Button(isNewLayout ? "저장" : "추가") { save() }
+                Button(isNewLayout ? L("common.save") : L("common.add")) { save() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(saveDisabled)
@@ -115,7 +115,7 @@ struct CaptureSheet: View {
         .onAppear {
             selected = Set(request.windows.map(\.id))
             if isNewLayout {
-                name = "배치 \(store.layouts.count + 1)"
+                name = L("layout.default_name", ["n": String(store.layouts.count + 1)])
             }
         }
     }
@@ -124,13 +124,13 @@ struct CaptureSheet: View {
         VStack(spacing: 10) {
             Spacer()
             if Accessibility.isTrusted {
-                Text("열려 있는 창을 찾지 못했습니다.")
+                Text(L("capture.no_windows"))
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(.orange)
-                Text("창 목록을 읽으려면 손쉬운 사용 권한이 필요합니다.")
-                Button("시스템 설정에서 허용하기") {
+                Text(L("capture.need_accessibility"))
+                Button(L("capture.allow_in_settings")) {
                     Accessibility.promptIfNeeded()
                     Accessibility.openSystemSettings()
                 }
@@ -166,7 +166,7 @@ struct CaptureSheet: View {
             }
         }
         .buttonStyle(.plain)
-        .help(all ? "이 앱의 창 모두 해제" : "이 앱의 창 모두 선택")
+        .help(all ? L("capture.deselect_all_app") : L("capture.select_all_app"))
     }
 
     private func save() {

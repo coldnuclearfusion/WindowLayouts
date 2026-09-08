@@ -144,7 +144,7 @@ enum BrowserSupport {
 
     private static func run(_ source: String) throws -> String {
         var error: NSDictionary?
-        guard let script = NSAppleScript(source: source) else { throw ScriptError.failed("스크립트 생성 실패") }
+        guard let script = NSAppleScript(source: source) else { throw ScriptError.failed("could not create script") }
         let result = script.executeAndReturnError(&error)
         if let error {
             let code = (error[NSAppleScript.errorNumber] as? Int) ?? 0

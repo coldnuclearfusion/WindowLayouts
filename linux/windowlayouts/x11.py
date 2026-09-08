@@ -189,7 +189,8 @@ class X11:
             return "failed", None
         if self.is_fullscreen(wid):
             if log:
-                log("전체 화면 창이라 건너뜀")
+                from .l10n import t
+                log(t("log.fullscreen_skip"))
             return "failed", None
         if self.is_minimized(wid):
             self.activate(wid)
@@ -200,7 +201,8 @@ class X11:
         if before is None:
             return "failed", None
         if log:
-            log(f"시작 {before.short()} → 목표 {target.short()}")
+            from .l10n import t
+            log(t("log.place_start").replace("{from}", before.short()).replace("{to}", target.short()))
         request = Frame(target.x, target.y, target.width, target.height)
         now = before
         for attempt in (1, 2, 3):
@@ -211,7 +213,8 @@ class X11:
                 return "failed", None
             ok = now.approximately_equals(target, 2)
             if log:
-                log(f"시도 {attempt}: 결과 {now.short()}{' ✓' if ok else ''}")
+                from .l10n import t
+                log(t("log.place_attempt", attempt=attempt, result=now.short()) + (" ✓" if ok else ""))
             if ok:
                 return "placed", now
             # 창 관리자가 좌표를 해석하는 방식이 달라 어긋났으면 그 차이만큼 보정
@@ -246,7 +249,7 @@ class X11:
             pass
         if not displays:
             g = self.root.get_geometry()
-            displays.append(DisplayInfo(id="screen", name="화면", x=0, y=0, width=float(g.width), height=float(g.height), is_main=True))
+            displays.append(DisplayInfo(id="screen", name="Screen", x=0, y=0, width=float(g.width), height=float(g.height), is_main=True))
         if not any(d.is_main for d in displays):
             displays[0].is_main = True
         return DisplayConfig(displays)

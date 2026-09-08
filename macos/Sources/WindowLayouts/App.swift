@@ -22,7 +22,7 @@ struct WindowLayoutsApp: App {
         .menuBarExtraStyle(.menu)
 
         // 상세 설정 창. 저장된 배치가 하나도 없는 첫 실행에만 자동으로 열린다.
-        Window("창 배치", id: MainWindow.windowID) {
+        Window("WindowLayouts", id: MainWindow.windowID) {
             MainWindow()
                 .environment(store)
                 .environment(appState)
@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let layout = store.layouts.first(where: {
                 ($0.id.uuidString.caseInsensitiveCompare(id ?? "") == .orderedSame) || (name != nil && $0.name == name)
             }) else {
-                ApplyLog.write("URL로 요청한 배치를 찾지 못함: \(url.absoluteString)")
+                ApplyLog.write(L("log.url_not_found", ["url": url.absoluteString]))
                 continue
             }
             Task { await LayoutApplier.shared.apply(layout) }

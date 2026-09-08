@@ -20,11 +20,18 @@ public partial class MainWindow : Window
         public EnumItem(T value, string label) { Value = value; Label = label; }
     }
 
-    public static IReadOnlyList<EnumItem<TitleMatch>> TitleMatchItems { get; } =
+    // 언어가 바뀌면 창을 다시 만들므로, 그때마다 새 라벨로 다시 계산되도록 매번 만든다
+    public static IReadOnlyList<EnumItem<TitleMatch>> TitleMatchItems =>
         Enum.GetValues<TitleMatch>().Select(m => new EnumItem<TitleMatch>(m, m.Label())).ToList();
 
-    public static IReadOnlyList<EnumItem<LaunchPolicy>> PolicyItems { get; } =
+    public static IReadOnlyList<EnumItem<LaunchPolicy>> PolicyItems =>
         Enum.GetValues<LaunchPolicy>().Select(p => new EnumItem<LaunchPolicy>(p, p.Label())).ToList();
+
+    public sealed class LanguageItem
+    {
+        public string Code { get; init; } = "";
+        public string Name { get; init; } = "";
+    }
 
     public sealed class SidebarItem
     {
@@ -39,10 +46,12 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<SidebarItem> _sidebarItems = new();
     private WindowLayout? _current;
     private bool _rebuilding;
+    private bool _loadingGeneral;
 
     public MainWindow()
     {
         InitializeComponent();
+        ApplyStrings();
         PolicyCombo.ItemsSource = PolicyItems;
         Sidebar.ItemsSource = _sidebarItems;
 
@@ -66,6 +75,55 @@ public partial class MainWindow : Window
     }
 
     private void OnStoreChanged() => RebuildSidebar();
+
+    /// <summary>화면의 고정 문구를 현재 언어로 채운다</summary>
+    private void ApplyStrings()
+    {
+        Title = Loc.T("app.name");
+        SidebarTitle.Text = Loc.T("app.name");
+        CaptureButton.Content = "＋ " + Loc.T("common.save");
+        CaptureButton.ToolTip = Loc.T("sidebar.save_tooltip");
+        Placeholder.Text = Loc.T("sidebar.placeholder_title") + "\n" + Loc.T("sidebar.placeholder_body");
+        ApplyButton.Content = "▶  " + Loc.T("detail.apply_now");
+        PolicyLabel.Text = Loc.T("detail.policy_label");
+        RaiseCheck.Content = Loc.T("detail.raise");
+        ChangeButton.Content = Loc.T("common.change");
+        ColApp.Header = Loc.T("column.app");
+        ColTitle.Header = Loc.T("column.title");
+        ColUrl.Header = Loc.T("column.url");
+        ColMatch.Header = Loc.T("column.match");
+        ColMonitor.Header = Loc.T("column.monitor");
+        ColX.Header = Loc.T("column.x");
+        ColY.Header = Loc.T("column.y");
+        ColW.Header = Loc.T("column.width");
+        ColH.Header = Loc.T("column.height");
+        AddWindowsButton.Content = "＋ " + Loc.T("detail.add_windows");
+        RefreshButton.Content = "↻ " + Loc.T("detail.refresh");
+        RefreshButton.ToolTip = Loc.T("detail.refresh_help");
+        DeleteRowsButton.Content = Loc.T("detail.delete_selected");
+        UpButton.ToolTip = Loc.T("detail.move_up_help");
+        DownButton.ToolTip = Loc.T("detail.move_down_help");
+        LanguageHeading.Text = Loc.T("general.language");
+        LanguageNote.Text = Loc.T("general.language_note");
+        StartupHeading.Text = Loc.T("general.startup");
+        StartupBox.Content = Loc.T("general.launch_at_login");
+        DataHeading.Text = Loc.T("general.data");
+        OpenFileButton.Content = Loc.T("general.open_file");
+        OpenFolderButton.Content = Loc.T("general.open_folder");
+        ReloadButton.Content = Loc.T("general.reload");
+        OpenLogButton.Content = Loc.T("general.open_log");
+        JsonHint.Text = Loc.T("general.json_hint");
+        CliHint.Text = Loc.T("general.cli_hint", ("command", "WindowLayouts.exe --apply \"NAME\""));
+        MonitorsHeading.Text = Loc.T("general.monitors");
+        MonitorsNote.Text = Loc.T("general.monitors_note");
+    }
+
+    /// <summary>일반 설정 페이지를 연다 (언어 변경 뒤 창을 다시 만들 때 사용)</summary>
+    public void ShowGeneral()
+    {
+        var item = _sidebarItems.FirstOrDefault(i => i.Kind == "general");
+        if (item != null) Sidebar.SelectedItem = item;
+    }
     private void OnDisplayChanged(object? sender, EventArgs e) => Dispatcher.InvokeAsync(() => { RebuildSidebar(); RefreshDisplayRow(); });
 
     // ---- 사이드바
@@ -78,14 +136,14 @@ public partial class MainWindow : Window
         _sidebarItems.Clear();
         foreach (var g in LayoutStore.Shared.Groups(Displays.Current()))
         {
-            _sidebarItems.Add(new SidebarItem { Kind = "header", Text = g.IsCurrent ? "현재 모니터 구성" : "다른 모니터 구성", Sub = g.ConfigName, GroupId = g.Id });
+            _sidebarItems.Add(new SidebarItem { Kind = "header", Text = Loc.T(g.IsCurrent ? "sidebar.current_config_header" : "sidebar.other_config_header"), Sub = g.ConfigName, GroupId = g.Id });
             if (g.Layouts.Count == 0)
-                _sidebarItems.Add(new SidebarItem { Kind = "empty", Text = "저장된 배치가 없습니다", GroupId = g.Id });
+                _sidebarItems.Add(new SidebarItem { Kind = "empty", Text = Loc.T("sidebar.no_layouts"), GroupId = g.Id });
             foreach (var l in g.Layouts)
                 _sidebarItems.Add(new SidebarItem { Kind = "layout", Text = l.Name, LayoutId = l.Id, GroupId = g.Id });
         }
         _sidebarItems.Add(new SidebarItem { Kind = "header", Text = "" });
-        _sidebarItems.Add(new SidebarItem { Kind = "general", Text = "⚙  일반 설정" });
+        _sidebarItems.Add(new SidebarItem { Kind = "general", Text = "⚙  " + Loc.T("sidebar.general") });
         _rebuilding = false;
 
         if (generalSelected) Sidebar.SelectedItem = _sidebarItems.First(i => i.Kind == "general");
@@ -124,22 +182,22 @@ public partial class MainWindow : Window
         }
         var groupIds = _sidebarItems.Where(i => i.Kind == "layout" && i.GroupId == item.GroupId).Select(i => i.LayoutId!.Value).ToList();
 
-        var apply = new MenuItem { Header = "적용" };
+        var apply = new MenuItem { Header = Loc.T("context.apply") };
         apply.Click += async (s, a) => await LayoutApplier.Shared.Apply(layout);
-        var duplicate = new MenuItem { Header = "복제" };
+        var duplicate = new MenuItem { Header = Loc.T("context.duplicate") };
         duplicate.Click += (s, a) =>
         {
             var copy = LayoutStore.Shared.Duplicate(layout.Id);
             if (copy != null) Sidebar.SelectedItem = _sidebarItems.FirstOrDefault(i => i.LayoutId == copy.Id);
         };
-        var up = new MenuItem { Header = "위로" };
+        var up = new MenuItem { Header = Loc.T("context.move_up") };
         up.Click += (s, a) => LayoutStore.Shared.MoveLayout(layout.Id, -1, groupIds);
-        var down = new MenuItem { Header = "아래로" };
+        var down = new MenuItem { Header = Loc.T("context.move_down") };
         down.Click += (s, a) => LayoutStore.Shared.MoveLayout(layout.Id, +1, groupIds);
-        var delete = new MenuItem { Header = "삭제…" };
+        var delete = new MenuItem { Header = Loc.T("context.delete") };
         delete.Click += (s, a) =>
         {
-            if (MessageBox.Show(this, $"‘{layout.Name}’ 배치를 삭제할까요? 되돌릴 수 없습니다.", "창 배치",
+            if (MessageBox.Show(this, Loc.T("delete.title", ("name", layout.Name)) + "\n" + Loc.T("delete.message"), Loc.T("app.name"),
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             if (_current?.Id == layout.Id) { _current = null; ShowPlaceholder(); }
             LayoutStore.Shared.Remove(layout.Id);
@@ -168,13 +226,19 @@ public partial class MainWindow : Window
         DetailPanel.Visibility = Visibility.Collapsed;
         Placeholder.Visibility = Visibility.Collapsed;
         GeneralPanel.Visibility = Visibility.Visible;
+        _loadingGeneral = true;
+        var languages = new List<LanguageItem> { new() { Code = Loc.SystemOption, Name = Loc.T("general.language_system") } };
+        languages.AddRange(Loc.Languages.Select(l => new LanguageItem { Code = l.code, Name = l.name }));
+        LanguageCombo.ItemsSource = languages;
+        LanguageCombo.SelectedValue = Loc.Setting;
+        _loadingGeneral = false;
         StartupBox.IsChecked = StartupRegistration.IsEnabled();
         StartupError.Text = "";
         FilePathText.Text = LayoutStore.Shared.FilePath;
         LoadErrorText.Text = LayoutStore.Shared.LoadError ?? "";
         var config = Displays.Current();
-        MonitorsText.Text = "현재 구성: " + config.Name + "\n" + string.Join("\n",
-            config.Displays.Select(d => $"{d.Name}{(d.IsMain ? " (주 모니터)" : "")} · {d.Frame.ShortDescription}"));
+        MonitorsText.Text = Loc.T("general.current_config") + ": " + config.Name + "\n" + string.Join("\n",
+            config.Displays.Select(d => $"{d.Name}{(d.IsMain ? Loc.T("display.main_suffix") : "")} · {d.Frame.ShortDescription}"));
     }
 
     private void ShowLayout(WindowLayout layout)
@@ -205,23 +269,23 @@ public partial class MainWindow : Window
         var saved = _current.DisplayConfig;
         if (saved == null)
         {
-            DisplayText.Text = "모니터 구성: 무관 (모든 구성에서 표시, 좌표 그대로 적용)";
+            DisplayText.Text = Loc.T("display.any");
             DisplayText.Foreground = Brushes.Black;
             return;
         }
         string status;
         bool warn = false;
-        if (saved.IsIdentical(current)) status = "현재와 같음";
-        else if (saved.HasSameDisplays(current)) { status = "같은 모니터지만 배열이 달라, 적용할 때 위치를 맞춥니다"; warn = true; }
-        else { status = "현재 구성과 달라, 적용할 때 창이 있던 모니터를 찾아 위치를 맞춥니다"; warn = true; }
-        DisplayText.Text = $"모니터 구성: {saved.Name}   ·   {status}";
+        if (saved.IsIdentical(current)) status = Loc.T("display.same");
+        else if (saved.HasSameDisplays(current)) { status = Loc.T("display.rearranged"); warn = true; }
+        else { status = Loc.T("display.different"); warn = true; }
+        DisplayText.Text = Loc.T("display.config", ("name", saved.Name)) + "   ·   " + status;
         DisplayText.Foreground = warn ? Brushes.DarkOrange : Brushes.Black;
     }
 
     private void UpdateCount()
     {
         if (_current == null) return;
-        CountText.Text = $"{_current.Windows.Count}개 창 · 좌표는 주 모니터 왼쪽 위가 (0, 0), 물리 픽셀";
+        CountText.Text = Loc.T("detail.count", ("count", _current.Windows.Count));
     }
 
     private void ShowReport()
@@ -254,9 +318,9 @@ public partial class MainWindow : Window
         if (_current == null) return;
         var layout = _current;
         var menu = new ContextMenu();
-        var toCurrent = new MenuItem { Header = "현재 모니터 구성으로 지정" };
+        var toCurrent = new MenuItem { Header = Loc.T("display.set_current") };
         toCurrent.Click += (s, a) => { LayoutStore.Shared.SetDisplayConfig(Displays.Current(), layout.Id); RefreshMonitorNames(); RefreshDisplayRow(); };
-        var any = new MenuItem { Header = "구성 무관으로 지정" };
+        var any = new MenuItem { Header = Loc.T("display.set_any") };
         any.Click += (s, a) => { LayoutStore.Shared.SetDisplayConfig(null, layout.Id); RefreshMonitorNames(); RefreshDisplayRow(); };
         menu.Items.Add(toCurrent);
         menu.Items.Add(any);
@@ -297,7 +361,7 @@ public partial class MainWindow : Window
         LayoutStore.Shared.Save();
         RefreshMonitorNames();
         RefreshDisplayRow();
-        RefreshText.Text = $"{updated}개 창의 위치를 현재 상태로 갱신하고, 모니터 구성을 현재 것으로 바꿨습니다.";
+        RefreshText.Text = Loc.T("detail.refreshed", ("count", updated));
     }
 
     private void DeleteRows_Click(object sender, RoutedEventArgs e)
@@ -324,8 +388,14 @@ public partial class MainWindow : Window
     private void Startup_Click(object sender, RoutedEventArgs e)
     {
         var error = StartupRegistration.SetEnabled(StartupBox.IsChecked == true);
-        StartupError.Text = error == null ? "" : "설정 실패: " + error;
+        StartupError.Text = error == null ? "" : Loc.T("general.login_error", ("error", error));
         StartupBox.IsChecked = StartupRegistration.IsEnabled();
+    }
+
+    private void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingGeneral || LanguageCombo.SelectedValue is not string code || code == Loc.Setting) return;
+        Loc.Setting = code;   // App이 Loc.Changed를 받아 이 창을 새 언어로 다시 만든다
     }
 
     private void OpenFile_Click(object sender, RoutedEventArgs e) => OpenPath(LayoutStore.Shared.FilePath);

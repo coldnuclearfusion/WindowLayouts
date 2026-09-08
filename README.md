@@ -11,6 +11,7 @@ Save window layouts and restore them in one click from the menu bar.
 - **Browser pages.** A browser window can carry a page address: on apply, the window that has that tab is used (tab activated), or the page is opened in a new window.
 - Starts at login and lives in the menu bar, no Dock icon.
 - **Scriptable.** `open "windowlayouts://apply?name=Coding"` applies a layout from a terminal, Shortcuts, or a hotkey app.
+- **Languages.** Korean, English, Japanese and Simplified Chinese, following the system language by default; selectable under General settings. All three apps share one string table, [`shared/strings.json`](shared/strings.json).
 
 ## Platforms
 
@@ -20,7 +21,11 @@ Save window layouts and restore them in one click from the menu bar.
 | Windows 10/11 | draft, not yet built or tested | [`windows/`](windows/) |
 | Linux (X11) | draft, not yet run or tested | [`linux/`](linux/) |
 
-Layouts are stored as JSON (`layouts.json`) so the format can be shared across platforms.
+Layouts are stored as JSON (`layouts.json`) so the format can be shared across platforms; the Linux models have been verified to read the macOS file unchanged. The Windows and Linux ports were written on a Mac, mirroring the macOS app module by module, and have not been built or run yet.
+
+## Languages
+
+The UI is available in Korean, English, Japanese and Simplified Chinese. By default each app follows the system language (Traditional Chinese systems get Simplified Chinese); a fixed language can be chosen under *General* in the settings window. Every user-visible string lives in [`shared/strings.json`](shared/strings.json), keyed by a stable identifier with `{placeholder}` substitution, and each platform copies that file into its build (macOS `build.sh`, the Windows project file, Linux `install.sh`). To add a language, add its code to `languages` and to every entry.
 
 ## Quick start (macOS)
 

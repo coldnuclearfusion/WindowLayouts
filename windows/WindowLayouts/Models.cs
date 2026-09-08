@@ -17,21 +17,24 @@ public enum TitleMatch { Auto, Title, Order }
 
 public static class EnumLabels
 {
-    public static string Label(this LaunchPolicy p) => p switch
+    public static string Key(this LaunchPolicy p) => p switch
     {
-        LaunchPolicy.Ask => "매번 물어보기",
-        LaunchPolicy.LaunchMissing => "실행하고 새 창 열기",
-        LaunchPolicy.RunningOnly => "지금 있는 창만 배치",
+        LaunchPolicy.Ask => "ask",
+        LaunchPolicy.LaunchMissing => "launchMissing",
+        LaunchPolicy.RunningOnly => "runningOnly",
         _ => p.ToString(),
     };
 
-    public static string Label(this TitleMatch m) => m switch
+    public static string Key(this TitleMatch m) => m switch
     {
-        TitleMatch.Auto => "자동",
-        TitleMatch.Title => "제목만",
-        TitleMatch.Order => "순서만",
+        TitleMatch.Auto => "auto",
+        TitleMatch.Title => "title",
+        TitleMatch.Order => "order",
         _ => m.ToString(),
     };
+
+    public static string Label(this LaunchPolicy p) => Loc.T("policy." + p.Key());
+    public static string Label(this TitleMatch m) => Loc.T("match." + m.Key());
 }
 
 /// <summary>화면 좌표계의 사각형 (가상 화면 기준, 주 모니터 왼쪽 위가 (0,0), 물리 픽셀)</summary>
@@ -107,7 +110,7 @@ public sealed class DisplayConfig
                 if (!counts.ContainsKey(d.Name)) { order.Add(d.Name); counts[d.Name] = 0; }
                 counts[d.Name]++;
             }
-            if (order.Count == 0) return "모니터 없음";
+            if (order.Count == 0) return Loc.T("display.none");
             return string.Join(" + ", order.Select(n => counts[n] > 1 ? $"{n} ×{counts[n]}" : n));
         }
     }
@@ -205,7 +208,7 @@ public sealed class WindowEntry : NotifyBase
 public sealed class WindowLayout : NotifyBase
 {
     private Guid _id = Guid.NewGuid();
-    private string _name = "이름 없음";
+    private string _name = Loc.T("layout.untitled");
     private LaunchPolicy _launchPolicy = LaunchPolicy.Ask;
     private bool _raiseWindows = true;
     private DisplayConfig? _displayConfig;

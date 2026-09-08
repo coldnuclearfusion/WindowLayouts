@@ -1,7 +1,7 @@
 <Window x:Class="WindowLayouts.CaptureWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="현재 창 배치 저장" Width="660" Height="580" MinWidth="560" MinHeight="440"
+        Title="WindowLayouts" Width="660" Height="580" MinWidth="560" MinHeight="440"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -13,16 +13,14 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="Heading" Grid.Row="0" FontSize="18" FontWeight="Bold" Text="현재 창 배치 저장" />
+        <TextBlock x:Name="Heading" Grid.Row="0" FontSize="18" FontWeight="Bold" />
         <TextBox x:Name="NameBox" Grid.Row="1" Margin="0,10,0,0" Padding="4" FontSize="13" TextChanged="NameBox_TextChanged" />
         <TextBlock x:Name="ConfigText" Grid.Row="2" Margin="0,8,0,0" Foreground="Gray" FontSize="11" />
 
         <StackPanel Grid.Row="3" Margin="0,8,0,8">
-            <TextBlock Text="포함할 창을 선택하세요. 앱 이름을 누르면 그 앱의 창을 한꺼번에 켜고 끕니다." Foreground="Gray" FontSize="11" />
-            <CheckBox x:Name="TitlesBox" Margin="0,6,0,0" FontSize="11"
-                      Content="창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)" />
-            <CheckBox x:Name="UrlsBox" Margin="0,4,0,0" FontSize="11"
-                      Content="브라우저 창은 페이지 주소도 저장 (적용할 때 그 페이지를 보여주는 창을 찾고, 없으면 새 창으로 엶)" />
+            <TextBlock x:Name="HintText" Foreground="Gray" FontSize="11" TextWrapping="Wrap" />
+            <CheckBox x:Name="TitlesBox" Margin="0,6,0,0" FontSize="11" />
+            <CheckBox x:Name="UrlsBox" Margin="0,4,0,0" FontSize="11" />
         </StackPanel>
 
         <Border Grid.Row="4" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
@@ -52,14 +50,14 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-                <TextBlock x:Name="EmptyText" Text="열려 있는 창을 찾지 못했습니다." HorizontalAlignment="Center"
+                <TextBlock x:Name="EmptyText" HorizontalAlignment="Center"
                            VerticalAlignment="Center" Foreground="Gray" Visibility="Collapsed" />
             </Grid>
         </Border>
 
         <DockPanel Grid.Row="5" Margin="0,12,0,0">
-            <Button Content="취소" Width="90" IsCancel="True" DockPanel.Dock="Left" />
-            <Button x:Name="SaveButton" Content="저장" Width="90" DockPanel.Dock="Right" IsDefault="True" Click="Save_Click" />
+            <Button x:Name="CancelButton" Width="90" IsCancel="True" DockPanel.Dock="Left" />
+            <Button x:Name="SaveButton" Width="90" DockPanel.Dock="Right" IsDefault="True" Click="Save_Click" />
             <TextBlock x:Name="CountText" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" Foreground="Gray" />
         </DockPanel>
     </Grid>

@@ -13,6 +13,7 @@ The macOS version of [WindowLayouts](../README.md): a menu bar app that saves wi
 - **Browser pages.** A browser row can carry a page address. On apply, the app looks for a window that has a tab with that address, activates the tab and places that window; if there is none, it opens the page in a new window and places it. Safari and Chromium browsers (Chrome, Edge, Brave, Vivaldi) expose all tabs through AppleScript, so tabs hidden behind other tabs are found too — macOS asks once for Automation permission. Firefox and others only expose the active tab of each window through the Accessibility API, so background tabs are not detected there and a new window is opened instead. New windows are opened with the browser's `--new-window` flag (Safari: AppleScript).
 - **Starts at login, lives in the menu bar.** No Dock icon. Toggle *Launch at login* under *General*.
 - **Automation.** `open "windowlayouts://apply?name=Coding"` (or `?id=<layout UUID>`) applies a layout from a terminal, Shortcuts, or a hotkey app.
+- **Languages.** Korean, English, Japanese and Simplified Chinese. *General › Language* offers *Follow system language* (default) or a fixed language; the change applies immediately to the menu and the open windows. The app's display name and permission prompts are localized through `Resources/*.lproj/InfoPlist.strings`.
 
 ## How windows are placed
 
@@ -28,7 +29,7 @@ Requires macOS 15 or later and either Xcode or the Command Line Tools (`swift`, 
 ./install.sh     # build → /Applications/WindowLayouts.app → launch
 ```
 
-`./build.sh` only builds; the bundle lands in `build/WindowLayouts.app`. The icon is regenerated with `tools/make-icon.sh` from `tools/makeicon.swift`.
+`./build.sh` only builds; the bundle lands in `build/WindowLayouts.app`. It copies `../shared/strings.json` (the UI strings for all languages) and the `*.lproj` folders into the bundle. The icon is regenerated with `tools/make-icon.sh` from `tools/makeicon.swift`.
 
 On first launch the app asks for **Accessibility** permission (System Settings › Privacy & Security › Accessibility). Without it the app can neither read nor move windows.
 
@@ -117,8 +118,11 @@ Don't copy a built `.app` to another Mac over AirDrop or the like: the Apple Dev
 Package.swift           Swift package, macOS 15+
 Resources/Info.plist    LSUIElement (menu bar only), icon, usage descriptions, windowlayouts:// URL scheme
 Resources/AppIcon.icns  app icon (tools/make-icon.sh)
+Resources/*.lproj       localized display name and usage descriptions
+../shared/strings.json  UI strings (ko/en/ja/zh-Hans), copied into the bundle by build.sh
 Sources/WindowLayouts/
   App.swift             MenuBarExtra + settings window scene
+  L10n.swift            loads strings.json, resolves the language, L("key") lookup
   Models.swift          WindowLayout, WindowEntry, DisplayConfig, policies
   LayoutStore.swift     JSON persistence, file watching, grouping by monitor setup
   SystemMonitor.swift   Accessibility permission and display change monitoring
@@ -132,4 +136,3 @@ build.sh / install.sh   build the .app bundle and sign it / install to /Applicat
 make-signing-cert.sh    optional local self-signed certificate
 ```
 
-The UI strings are currently Korean.

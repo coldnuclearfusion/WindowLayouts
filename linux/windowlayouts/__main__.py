@@ -50,7 +50,7 @@ def _serve(app) -> None:
 def main() -> int:
     args = sys.argv[1:]
     if "--help" in args or "-h" in args:
-        print("windowlayouts [--apply 배치이름|ID] [--settings] [--background]")
+        print("windowlayouts [--apply NAME|ID] [--settings] [--background]")
         return 0
     if _try_forward(args):
         return 0

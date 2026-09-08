@@ -9,7 +9,7 @@ struct MenuContent: View {
 
     var body: some View {
         if !monitor.isTrusted {
-            Button("손쉬운 사용 권한이 필요합니다…") {
+            Button(L("menu.need_accessibility")) {
                 Accessibility.promptIfNeeded()
                 Accessibility.openSystemSettings()
             }
@@ -19,16 +19,16 @@ struct MenuContent: View {
         let groups = store.groups(current: monitor.displayConfig)
         ForEach(groups) { group in
             if group.isCurrent {
-                Section("현재 모니터 구성: \(group.configName)") {
+                Section(L("menu.current_config", ["name": group.configName])) {
                     if group.layouts.isEmpty {
-                        Text("이 구성에 저장된 배치가 없습니다")
+                        Text(L("menu.no_layouts_in_config"))
                     }
                     ForEach(group.layouts) { layout in
                         layoutButton(layout)
                     }
                 }
             } else {
-                Menu("다른 구성: \(group.configName)") {
+                Menu(L("menu.other_config", ["name": group.configName])) {
                     ForEach(group.layouts) { layout in
                         layoutButton(layout)
                     }
@@ -38,18 +38,18 @@ struct MenuContent: View {
 
         Divider()
 
-        Button("현재 창 배치 저장…") {
+        Button(L("menu.save_current")) {
             // 메뉴를 누른 그 순간의 창 상태를 먼저 찍어 두고, 그다음 창을 연다
             appState.captureRequest = CaptureRequest(windows: WindowCapture.currentWindows(), targetLayoutID: nil)
             showMainWindow()
         }
-        Button("상세 설정…") {
+        Button(L("menu.settings")) {
             showMainWindow()
         }
 
         Divider()
 
-        Button("종료") {
+        Button(L("menu.quit")) {
             NSApp.terminate(nil)
         }
     }

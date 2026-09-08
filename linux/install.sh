@@ -27,6 +27,7 @@ pkill -f "windowlayouts" 2>/dev/null || true
 sleep 0.5
 rm -rf "$DEST/windowlayouts"
 cp -R windowlayouts "$DEST/"
+cp ../shared/strings.json "$DEST/windowlayouts/assets/strings.json"
 
 cat > "$BIN/windowlayouts" <<LAUNCHER
 #!/bin/sh

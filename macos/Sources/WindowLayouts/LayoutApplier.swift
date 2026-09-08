@@ -17,21 +17,21 @@ struct ApplyReport {
 
     var headline: String {
         if let error { return error }
-        if cancelled { return "‘\(layoutName)’ 적용을 취소했습니다." }
-        var s = "‘\(layoutName)’ 적용: \(placed.count)개 창 배치됨"
-        if !unmatched.isEmpty { s += ", \(unmatched.count)개 창 못 찾음" }
-        if !mismatched.isEmpty { s += ", \(mismatched.count)개 크기/위치 다름" }
-        if !failed.isEmpty { s += ", \(failed.count)개 실패" }
+        if cancelled { return L("report.cancelled", ["name": layoutName]) }
+        var s = L("report.headline", ["name": layoutName, "placed": String(placed.count)])
+        if !unmatched.isEmpty { s += L("report.unmatched_suffix", ["count": String(unmatched.count)]) }
+        if !mismatched.isEmpty { s += L("report.mismatched_suffix", ["count": String(mismatched.count)]) }
+        if !failed.isEmpty { s += L("report.failed_suffix", ["count": String(failed.count)]) }
         return s
     }
 
     var lines: [String] {
         var l: [String] = notes
-        if !launched.isEmpty { l.append("실행함: " + launched.joined(separator: ", ")) }
-        if !notRunning.isEmpty { l.append("실행하거나 창을 열지 않아 건너뜀: " + notRunning.joined(separator: ", ")) }
-        if !unmatched.isEmpty { l.append("맞는 창을 못 찾음: " + unmatched.joined(separator: ", ")) }
-        if !failed.isEmpty { l.append("위치 변경 실패: " + failed.joined(separator: ", ")) }
-        if !mismatched.isEmpty { l.append("요청과 다르게 놓임 (앱이 거부하거나 조정함): " + mismatched.joined(separator: " · ")) }
+        if !launched.isEmpty { l.append(L("report.launched", ["list": launched.joined(separator: ", ")])) }
+        if !notRunning.isEmpty { l.append(L("report.not_running", ["list": notRunning.joined(separator: ", ")])) }
+        if !unmatched.isEmpty { l.append(L("report.unmatched", ["list": unmatched.joined(separator: ", ")])) }
+        if !failed.isEmpty { l.append(L("report.failed", ["list": failed.joined(separator: ", ")])) }
+        if !mismatched.isEmpty { l.append(L("report.mismatched", ["list": mismatched.joined(separator: " · ")])) }
         return l
     }
 }
@@ -119,12 +119,12 @@ final class LayoutApplier {
         defer { isApplying = false }
 
         var report = ApplyReport(layoutID: layout.id, layoutName: layout.name)
-        ApplyLog.write("=== 적용 시작: '\(layout.name)' (정책 \(layout.launchPolicy.rawValue), 앞으로 올리기 \(layout.raiseWindows))")
-        defer { ApplyLog.write("=== 적용 끝: \(lastReport?.headline ?? "") \(lastReport?.lines.joined(separator: " | ") ?? "")") }
+        ApplyLog.write(L("log.start", ["name": layout.name, "policy": layout.launchPolicy.rawValue, "raise": String(layout.raiseWindows)]))
+        defer { ApplyLog.write(L("log.end", ["summary": "\(lastReport?.headline ?? "") \(lastReport?.lines.joined(separator: " | ") ?? "")"])) }
 
         guard Accessibility.isTrusted else {
             Accessibility.promptIfNeeded()
-            report.error = "손쉬운 사용 권한이 없어 창을 옮길 수 없습니다."
+            report.error = L("report.no_accessibility")
             lastReport = report
             return
         }
@@ -132,9 +132,9 @@ final class LayoutApplier {
         let entries = layout.windows.filter(\.enabled)
         let bundleIDs = layout.enabledBundleIDs
         let currentConfig = DisplayConfig.current()
-        ApplyLog.write("현재 모니터: " + currentConfig.displays.map { "\($0.name) \($0.frame.shortDescription)\($0.isMain ? " 주" : "")" }.joined(separator: " / "))
+        ApplyLog.write(L("log.monitors", ["list": currentConfig.displays.map { "\($0.name) \($0.frame.shortDescription)\($0.isMain ? L("log.main_suffix") : "")" }.joined(separator: " / ")]))
         if let saved = layout.displayConfig, !saved.isIdentical(to: currentConfig) {
-            report.notes.append("저장 당시 모니터 구성(\(saved.name))과 지금(\(currentConfig.name))이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.")
+            report.notes.append(L("report.config_differs", ["saved": saved.name, "current": currentConfig.name]))
         }
         let missing = bundleIDs.filter { runningApps(bundleID: $0).isEmpty }
         // 프로세스는 살아 있지만 창이 하나도 없는 앱 (창을 다 닫아도 앱은 남아 있는 macOS 특성)
@@ -151,7 +151,7 @@ final class LayoutApplier {
         var allowNewWindows = layout.launchPolicy != .runningOnly
 
         func label(_ bundleID: String) -> String {
-            layout.appName(for: bundleID) + (windowless.contains(bundleID) ? " (실행 중이지만 창 없음)" : "")
+            layout.appName(for: bundleID) + (windowless.contains(bundleID) ? L("report.windowless_suffix") : "")
         }
 
         // 실행 안 된 앱, 창 없는 앱 처리 (요구사항 6)
@@ -177,10 +177,10 @@ final class LayoutApplier {
                 for bundleID in needsOpen {
                     let reopen = windowless.contains(bundleID)
                     if launch(bundleID: bundleID, reopen: reopen) {
-                        report.launched.append(layout.appName(for: bundleID) + (reopen ? " (새 창)" : ""))
+                        report.launched.append(layout.appName(for: bundleID) + (reopen ? L("report.new_window_suffix") : ""))
                         toWait[bundleID] = entries.filter { $0.bundleID == bundleID }.count
                     } else {
-                        report.failed.append("\(layout.appName(for: bundleID)) (앱을 찾을 수 없음)")
+                        report.failed.append(L("report.app_not_found", ["app": layout.appName(for: bundleID)]))
                         skipped.insert(bundleID)
                     }
                 }
@@ -221,17 +221,17 @@ final class LayoutApplier {
             for (entry, window) in matches {
                 guard let window else {
                     report.unmatched.append(entry.displayName)
-                    ApplyLog.write("[\(entry.displayName)] 맞는 창 없음 (남은 창 \(windows.count)개)")
+                    ApplyLog.write(L("log.no_match", ["window": entry.displayName, "count": String(windows.count)]))
                     continue
                 }
                 let frame = Self.targetFrame(for: entry, saved: layout.displayConfig, current: currentConfig)
-                ApplyLog.write("[\(entry.displayName)] 창 '\(window.title)' 배정")
+                ApplyLog.write(L("log.assigned", ["window": entry.displayName, "title": window.title]))
                 let outcome = AX.place(window.element, frame) { ApplyLog.write("[\(entry.displayName)] \($0)") }
                 switch outcome {
                 case .placed, .mismatch:
                     report.placed.append(entry.displayName)
                     if case .mismatch(let actual) = outcome {
-                        report.mismatched.append("\(entry.displayName): 요청 \(frame.shortDescription) → 실제 \(actual.shortDescription)")
+                        report.mismatched.append(L("report.mismatch_item", ["window": entry.displayName, "requested": frame.shortDescription, "actual": actual.shortDescription]))
                     }
                     if let app = apps.first(where: { $0.processIdentifier == AX.pid(of: window.element) }) {
                         placedWindows.append((entry, window, app))
@@ -245,7 +245,7 @@ final class LayoutApplier {
         // 배치의 창들을 다른 창들 위로 올리기 (표의 위 항목이 가장 앞)
         if layout.raiseWindows && !placedWindows.isEmpty {
             let failures = await raise(placedWindows, order: layout.windows.map(\.id))
-            if failures > 0 { report.notes.append("\(failures)개 창은 앞으로 올리지 못했습니다.") }
+            if failures > 0 { report.notes.append(L("report.raise_failed", ["count": String(failures)])) }
         }
 
         LayoutStore.shared.lastAppliedID = layout.id
@@ -279,7 +279,7 @@ final class LayoutApplier {
                 }
             }
         } catch BrowserSupport.ScriptError.notPermitted {
-            scriptingNote = "\(entry.appName)의 숨은 탭까지 검색하려면 시스템 설정 › 개인정보 보호 및 보안 › 자동화에서 WindowLayouts가 \(entry.appName)을(를) 제어하도록 허용하세요. 지금은 각 창의 활성 탭만 확인했습니다."
+            scriptingNote = L("report.automation_hint", ["app": entry.appName])
         } catch {
             // AppleScript를 지원하지 않는 브라우저 등: 아래 접근성 경로로
         }
@@ -293,7 +293,7 @@ final class LayoutApplier {
         guard allowNewWindow else { return BrowserResolution(window: nil, note: scriptingNote) }
         let before = AX.windows(for: app).map(\.element)
         guard BrowserSupport.openInNewWindow(url, app: app) else {
-            return BrowserResolution(window: nil, note: "\(entry.appName)에서 \(url) 을(를) 새 창으로 열지 못했습니다.")
+            return BrowserResolution(window: nil, note: L("report.new_window_failed", ["app": entry.appName, "url": url]))
         }
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
@@ -305,7 +305,7 @@ final class LayoutApplier {
             }
         }
         return BrowserResolution(window: nil,
-                                 note: "\(entry.appName)에서 \(url) 새 창이 열리기를 기다렸지만 나타나지 않았습니다.")
+                                 note: L("report.new_window_timeout", ["app": entry.appName, "url": url]))
     }
 
     /// 앱 단위로 뒤에서부터 활성화하고 창을 올려서, 마지막에 첫 항목의 앱이 맨 앞에 오게 한다.
@@ -429,15 +429,15 @@ final class LayoutApplier {
     @MainActor
     private func askAboutMissing(_ names: [String], layoutName: String) -> MissingChoice {
         let alert = NSAlert()
-        alert.messageText = "실행 중이 아니거나 창이 없는 앱이 있습니다"
-        alert.informativeText = "‘\(layoutName)’ 배치에 포함된 다음 앱을 실행하거나 새 창을 열어야 합니다.\n\n"
+        alert.messageText = L("ask.title")
+        alert.informativeText = L("ask.message", ["name": layoutName]) + "\n\n"
             + names.map { "• \($0)" }.joined(separator: "\n")
-        alert.addButton(withTitle: "실행/창 열고 배치")
-        alert.addButton(withTitle: "지금 있는 창만 배치")
-        let cancel = alert.addButton(withTitle: "취소")
+        alert.addButton(withTitle: L("ask.launch"))
+        alert.addButton(withTitle: L("ask.skip"))
+        let cancel = alert.addButton(withTitle: L("common.cancel"))
         cancel.keyEquivalent = "\u{1b}"
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = "이 배치에서는 다시 묻지 않기"
+        alert.suppressionButton?.title = L("ask.remember")
 
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()

@@ -6,6 +6,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: E402
 
 from . import paths  # noqa: E402
+from .l10n import t  # noqa: E402
 
 AppIndicator = None
 for _ns in ("AyatanaAppIndicator3", "AppIndicator3"):
@@ -27,15 +28,15 @@ class Tray:
             self.indicator = AppIndicator.Indicator.new("windowlayouts", "windowlayouts",
                                                         AppIndicator.IndicatorCategory.APPLICATION_STATUS)
             try:
-                self.indicator.set_icon_full(paths.ICON_FILE, "창 배치")
+                self.indicator.set_icon_full(paths.ICON_FILE, t("app.name"))
             except Exception:
                 pass
             self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-            self.indicator.set_title("창 배치")
+            self.indicator.set_title(t("app.name"))
             self.rebuild()
         else:
             self.status_icon = Gtk.StatusIcon.new_from_file(paths.ICON_FILE)
-            self.status_icon.set_tooltip_text("창 배치")
+            self.status_icon.set_tooltip_text(t("app.name"))
             self.status_icon.connect("popup-menu", self._on_popup)
             self.status_icon.connect("activate", self._on_popup_left)
 
@@ -52,31 +53,31 @@ class Tray:
         store = self.app.store
         for g in store.groups(self.app.current_display_config()):
             if g.is_current:
-                header = Gtk.MenuItem(label="현재 모니터 구성: " + g.config_name)
+                header = Gtk.MenuItem(label=t("menu.current_config", name=g.config_name))
                 header.set_sensitive(False)
                 menu.append(header)
                 if not g.layouts:
-                    empty = Gtk.MenuItem(label="이 구성에 저장된 배치가 없습니다")
+                    empty = Gtk.MenuItem(label=t("menu.no_layouts_in_config"))
                     empty.set_sensitive(False)
                     menu.append(empty)
                 for l in g.layouts:
                     menu.append(self._layout_item(l))
             else:
-                sub_item = Gtk.MenuItem(label="다른 구성: " + g.config_name)
+                sub_item = Gtk.MenuItem(label=t("menu.other_config", name=g.config_name))
                 sub = Gtk.Menu()
                 for l in g.layouts:
                     sub.append(self._layout_item(l))
                 sub_item.set_submenu(sub)
                 menu.append(sub_item)
         menu.append(Gtk.SeparatorMenuItem())
-        save = Gtk.MenuItem(label="현재 창 배치 저장…")
+        save = Gtk.MenuItem(label=t("menu.save_current"))
         save.connect("activate", lambda _i: self.app.capture_new())
         menu.append(save)
-        settings = Gtk.MenuItem(label="상세 설정…")
+        settings = Gtk.MenuItem(label=t("menu.settings"))
         settings.connect("activate", lambda _i: self.app.show_settings())
         menu.append(settings)
         menu.append(Gtk.SeparatorMenuItem())
-        quit_item = Gtk.MenuItem(label="종료")
+        quit_item = Gtk.MenuItem(label=t("menu.quit"))
         quit_item.connect("activate", lambda _i: self.app.quit())
         menu.append(quit_item)
         menu.show_all()

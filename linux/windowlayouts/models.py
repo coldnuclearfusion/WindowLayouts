@@ -6,12 +6,18 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
-POLICY_LABELS = {
-    "ask": "매번 물어보기",
-    "launchMissing": "실행하고 새 창 열기",
-    "runningOnly": "지금 있는 창만 배치",
-}
-MATCH_LABELS = {"auto": "자동", "title": "제목만", "order": "순서만"}
+from .l10n import t
+
+POLICY_KEYS = ["ask", "launchMissing", "runningOnly"]
+MATCH_KEYS = ["auto", "title", "order"]
+
+
+def policy_label(key: str) -> str:
+    return t("policy." + key)
+
+
+def match_label(key: str) -> str:
+    return t("match." + key)
 
 
 @dataclass
@@ -102,7 +108,7 @@ class DisplayConfig:
                 counts[d.name] = 0
             counts[d.name] += 1
         if not order:
-            return "모니터 없음"
+            return t("display.none")
         return " + ".join(f"{n} ×{counts[n]}" if counts[n] > 1 else n for n in order)
 
     @property
@@ -187,7 +193,7 @@ class WindowEntry:
         e.id = str(d.get("id") or e.id)
         e.app_name = str(d.get("appName") or e.bundle_id)
         e.title = str(d.get("title") or "")
-        e.title_match = d.get("titleMatch") if d.get("titleMatch") in MATCH_LABELS else "auto"
+        e.title_match = d.get("titleMatch") if d.get("titleMatch") in MATCH_KEYS else "auto"
         e.x = float(d.get("x", 0))
         e.y = float(d.get("y", 0))
         e.width = float(d.get("width", 800))
@@ -201,7 +207,7 @@ class WindowEntry:
 
 @dataclass
 class WindowLayout:
-    name: str = "이름 없음"
+    name: str = ""
     launch_policy: str = "ask"      # ask | launchMissing | runningOnly
     raise_windows: bool = True
     display_config: Optional[DisplayConfig] = None
@@ -234,8 +240,8 @@ class WindowLayout:
     def from_json(d: dict) -> "WindowLayout":
         l = WindowLayout()
         l.id = str(d.get("id") or l.id)
-        l.name = str(d.get("name") or "이름 없음")
-        l.launch_policy = d.get("launchPolicy") if d.get("launchPolicy") in POLICY_LABELS else "ask"
+        l.name = str(d.get("name") or t("layout.untitled"))
+        l.launch_policy = d.get("launchPolicy") if d.get("launchPolicy") in POLICY_KEYS else "ask"
         l.raise_windows = bool(d.get("raiseWindows", True))
         l.display_config = DisplayConfig.from_json(d.get("displayConfig"))
         l.windows = [WindowEntry.from_json(w) for w in d.get("windows", []) if isinstance(w, dict)]
