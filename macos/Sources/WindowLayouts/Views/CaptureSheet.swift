@@ -12,6 +12,7 @@ struct CaptureSheet: View {
     @State private var name = ""
     @State private var selected = Set<UUID>()
     @AppStorage("saveWindowTitles") private var saveTitles = true
+    @AppStorage("saveWindowURLs") private var saveURLs = true
 
     private var isNewLayout: Bool { request.targetLayoutID == nil }
 
@@ -62,15 +63,26 @@ struct CaptureSheet: View {
                     .foregroundStyle(.secondary)
                 Toggle("창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)", isOn: $saveTitles)
                     .font(.caption)
+                Toggle("브라우저 창은 페이지 주소도 저장 (적용할 때 그 페이지 탭이 있는 창을 찾고, 없으면 새 창으로 엶)", isOn: $saveURLs)
+                    .font(.caption)
                 List {
                     ForEach(groups) { group in
                         Section {
                             ForEach(group.windows) { w in
                                 Toggle(isOn: windowBinding(w.id)) {
-                                    HStack {
-                                        Text(w.title.isEmpty ? "(제목 없음)" : w.title)
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
+                                    HStack(alignment: .top) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(w.title.isEmpty ? "(제목 없음)" : w.title)
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                            if let url = w.url, saveURLs {
+                                                Text(url)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.middle)
+                                            }
+                                        }
                                         Spacer()
                                         Text(w.frame.shortDescription)
                                             .foregroundStyle(.secondary)
@@ -160,7 +172,7 @@ struct CaptureSheet: View {
     private func save() {
         let entries = request.windows
             .filter { selected.contains($0.id) }
-            .map { $0.makeEntry(includeTitle: saveTitles) }
+            .map { $0.makeEntry(includeTitle: saveTitles, includeURL: saveURLs) }
         if let target = request.targetLayoutID {
             store.append(entries, to: target)
         } else {
