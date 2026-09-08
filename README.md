@@ -18,7 +18,7 @@ Save window layouts and restore them in one click from the menu bar.
 |---|---|---|
 | macOS 15+ | available | [`macos/`](macos/) |
 | Windows 10/11 | draft, not yet built or tested | [`windows/`](windows/) |
-| Linux | planned | `linux/` |
+| Linux (X11) | draft, not yet run or tested | [`linux/`](linux/) |
 
 Layouts are stored as JSON (`layouts.json`) so the format can be shared across platforms.
 
