@@ -10,6 +10,7 @@ struct ApplyReport {
     var launched: [String] = []
     var notRunning: [String] = []
     var failed: [String] = []
+    var mismatched: [String] = []
     var notes: [String] = []
     var cancelled = false
     var error: String?
@@ -19,6 +20,7 @@ struct ApplyReport {
         if cancelled { return "‘\(layoutName)’ 적용을 취소했습니다." }
         var s = "‘\(layoutName)’ 적용: \(placed.count)개 창 배치됨"
         if !unmatched.isEmpty { s += ", \(unmatched.count)개 창 못 찾음" }
+        if !mismatched.isEmpty { s += ", \(mismatched.count)개 크기/위치 다름" }
         if !failed.isEmpty { s += ", \(failed.count)개 실패" }
         return s
     }
@@ -29,6 +31,7 @@ struct ApplyReport {
         if !notRunning.isEmpty { l.append("실행하거나 창을 열지 않아 건너뜀: " + notRunning.joined(separator: ", ")) }
         if !unmatched.isEmpty { l.append("맞는 창을 못 찾음: " + unmatched.joined(separator: ", ")) }
         if !failed.isEmpty { l.append("위치 변경 실패: " + failed.joined(separator: ", ")) }
+        if !mismatched.isEmpty { l.append("요청과 다르게 놓임 (앱이 거부하거나 조정함): " + mismatched.joined(separator: " · ")) }
         return l
     }
 }
@@ -116,6 +119,8 @@ final class LayoutApplier {
         defer { isApplying = false }
 
         var report = ApplyReport(layoutID: layout.id, layoutName: layout.name)
+        ApplyLog.write("=== 적용 시작: '\(layout.name)' (정책 \(layout.launchPolicy.rawValue), 앞으로 올리기 \(layout.raiseWindows))")
+        defer { ApplyLog.write("=== 적용 끝: \(lastReport?.headline ?? "") \(lastReport?.lines.joined(separator: " | ") ?? "")") }
 
         guard Accessibility.isTrusted else {
             Accessibility.promptIfNeeded()
@@ -127,6 +132,7 @@ final class LayoutApplier {
         let entries = layout.windows.filter(\.enabled)
         let bundleIDs = layout.enabledBundleIDs
         let currentConfig = DisplayConfig.current()
+        ApplyLog.write("현재 모니터: " + currentConfig.displays.map { "\($0.name) \($0.frame.shortDescription)\($0.isMain ? " 주" : "")" }.joined(separator: " / "))
         if let saved = layout.displayConfig, !saved.isIdentical(to: currentConfig) {
             report.notes.append("저장 당시 모니터 구성(\(saved.name))과 지금(\(currentConfig.name))이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.")
         }
@@ -215,15 +221,22 @@ final class LayoutApplier {
             for (entry, window) in matches {
                 guard let window else {
                     report.unmatched.append(entry.displayName)
+                    ApplyLog.write("[\(entry.displayName)] 맞는 창 없음 (남은 창 \(windows.count)개)")
                     continue
                 }
                 let frame = Self.targetFrame(for: entry, saved: layout.displayConfig, current: currentConfig)
-                if AX.setFrame(window.element, frame) {
+                ApplyLog.write("[\(entry.displayName)] 창 '\(window.title)' 배정")
+                let outcome = AX.place(window.element, frame) { ApplyLog.write("[\(entry.displayName)] \($0)") }
+                switch outcome {
+                case .placed, .mismatch:
                     report.placed.append(entry.displayName)
+                    if case .mismatch(let actual) = outcome {
+                        report.mismatched.append("\(entry.displayName): 요청 \(frame.shortDescription) → 실제 \(actual.shortDescription)")
+                    }
                     if let app = apps.first(where: { $0.processIdentifier == AX.pid(of: window.element) }) {
                         placedWindows.append((entry, window, app))
                     }
-                } else {
+                case .failed:
                     report.failed.append(entry.displayName)
                 }
             }

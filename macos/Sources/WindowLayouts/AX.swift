@@ -43,21 +43,66 @@ enum AX {
         return result
     }
 
-    /// 창을 주어진 위치/크기로 옮긴다. 최소화되어 있으면 먼저 복원한다.
-    @discardableResult
-    static func setFrame(_ element: AXUIElement, _ frame: CGRect) -> Bool {
+    enum PlaceOutcome: Equatable {
+        case placed
+        case mismatch(actual: CGRect)   // 옮기긴 했지만 앱이 크기/위치를 다르게 잡음
+        case failed
+    }
+
+    static func currentFrame(_ element: AXUIElement) -> CGRect? {
+        guard let p = point(element, kAXPositionAttribute), let s = size(element, kAXSizeAttribute) else { return nil }
+        return CGRect(origin: p, size: s)
+    }
+
+    /// 창을 주어진 위치/크기로 옮기고, 실제로 그렇게 됐는지 읽어서 확인한다.
+    /// 안 맞으면 순서를 바꿔 가며 최대 3번 시도한다 (다른 배율의 화면으로 옮길 때
+    /// Chromium 계열 앱이 크기 변경을 되돌리는 경우 대응).
+    static func place(_ element: AXUIElement, _ frame: CGRect, log: ((String) -> Void)? = nil) -> PlaceOutcome {
         if bool(element, kAXMinimizedAttribute) == true {
             setBool(element, kAXMinimizedAttribute, false)
             usleep(250_000)
         }
         if bool(element, "AXFullScreen") == true {
-            return false // 전체 화면 창은 건드리지 않음
+            log?("전체 화면 창이라 건너뜀")
+            return .failed
         }
-        // 위치 → 크기 → 위치 순서로 두 번 설정: 크기가 바뀌면서 위치가 밀리는 앱 대응
-        let p1 = setPoint(element, kAXPositionAttribute, frame.origin)
-        let s = setSize(element, kAXSizeAttribute, frame.size)
-        let p2 = setPoint(element, kAXPositionAttribute, frame.origin)
-        return (p1 || p2) && s
+        if let before = currentFrame(element) { log?("시작 \(before.shortDescription) → 목표 \(frame.shortDescription)") }
+
+        var anySuccess = false
+        for attempt in 1...3 {
+            var ok = false
+            switch attempt {
+            case 1:
+                // 크기 → 위치 → 크기: 지금 있는 화면에서 크기를 먼저 맞춘 뒤 옮긴다
+                ok = setSize(element, kAXSizeAttribute, frame.size)
+                ok = setPoint(element, kAXPositionAttribute, frame.origin) || ok
+                ok = setSize(element, kAXSizeAttribute, frame.size) || ok
+            case 2:
+                usleep(150_000)
+                // 위치 → 크기 → 위치
+                ok = setPoint(element, kAXPositionAttribute, frame.origin)
+                ok = setSize(element, kAXSizeAttribute, frame.size) || ok
+                ok = setPoint(element, kAXPositionAttribute, frame.origin) || ok
+            default:
+                usleep(300_000)
+                ok = setSize(element, kAXSizeAttribute, frame.size)
+                ok = setPoint(element, kAXPositionAttribute, frame.origin) || ok
+            }
+            anySuccess = anySuccess || ok
+            usleep(60_000)
+            guard let now = currentFrame(element) else { continue }
+            let match = now.approximatelyEquals(frame, tolerance: 2)
+            log?("시도 \(attempt): 결과 \(now.shortDescription)\(match ? " ✓" : "")")
+            if match { return .placed }
+        }
+        guard anySuccess, let now = currentFrame(element) else { return .failed }
+        return .mismatch(actual: now)
+    }
+
+    /// 예전 호출 호환용
+    @discardableResult
+    static func setFrame(_ element: AXUIElement, _ frame: CGRect) -> Bool {
+        place(element, frame) != .failed
     }
 
     /// 브라우저 창이 보여주는 페이지 주소 (활성 탭). 창 → 웹 영역(AXWebArea)의 AXURL을 찾는다.

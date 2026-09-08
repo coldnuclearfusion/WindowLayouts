@@ -10,6 +10,7 @@ Save window layouts and restore them in one click from the menu bar.
 - **Raise on apply.** Optionally bring the layout's windows to the front, in the saved order.
 - **Browser pages.** A browser window can carry a page address: on apply, the window that has that tab is used (tab activated), or the page is opened in a new window.
 - Starts at login and lives in the menu bar, no Dock icon.
+- **Scriptable.** `open "windowlayouts://apply?name=Coding"` applies a layout from a terminal, Shortcuts, or a hotkey app.
 
 ## Platforms
 

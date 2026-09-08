@@ -12,6 +12,13 @@ The macOS version of [WindowLayouts](../README.md): a menu bar app that saves wi
 - **Apps that aren't running, or have no window.** macOS keeps apps alive after the last window is closed. Both cases are handled by the layout's policy: *ask every time*, *launch and open windows*, or *only place existing windows*. Launching sends the app a reopen event, which makes it create a window, and the app waits for it before placing.
 - **Browser pages.** A browser row can carry a page address. On apply, the app looks for a window that has a tab with that address, activates the tab and places that window; if there is none, it opens the page in a new window and places it. Safari and Chromium browsers (Chrome, Edge, Brave, Vivaldi) expose all tabs through AppleScript, so tabs hidden behind other tabs are found too — macOS asks once for Automation permission. Firefox and others only expose the active tab of each window through the Accessibility API, so background tabs are not detected there and a new window is opened instead. New windows are opened with the browser's `--new-window` flag (Safari: AppleScript).
 - **Starts at login, lives in the menu bar.** No Dock icon. Toggle *Launch at login* under *General*.
+- **Automation.** `open "windowlayouts://apply?name=Coding"` (or `?id=<layout UUID>`) applies a layout from a terminal, Shortcuts, or a hotkey app.
+
+## How windows are placed
+
+Each window is resized first, then moved, then resized again, and the resulting frame is read back. If it differs from the request, the app retries twice with the other order and, if it still differs, reports the actual frame in the result ("요청과 다르게 놓임"). The size-before-move order matters: Chromium-based apps (Chrome, Discord, Electron apps) ignore a resize that arrives right after the window has been moved to a display with a different backing scale (for example from a 1x external monitor to the 2x built-in display), which left windows too wide. Fullscreen windows are skipped; minimized windows are restored first.
+
+Every apply is logged to `~/Library/Application Support/WindowLayouts/apply.log` (*General › Open apply log*): which window was matched to each row, each placement attempt with the frame read back, launches, and browser tab lookups. Check it first when a layout does not come out as expected.
 
 ## Build and install
 
@@ -108,14 +115,15 @@ Don't copy a built `.app` to another Mac over AirDrop or the like: the Apple Dev
 
 ```
 Package.swift           Swift package, macOS 15+
-Resources/Info.plist    LSUIElement (menu bar only), icon, usage descriptions
+Resources/Info.plist    LSUIElement (menu bar only), icon, usage descriptions, windowlayouts:// URL scheme
 Resources/AppIcon.icns  app icon (tools/make-icon.sh)
 Sources/WindowLayouts/
   App.swift             MenuBarExtra + settings window scene
   Models.swift          WindowLayout, WindowEntry, DisplayConfig, policies
   LayoutStore.swift     JSON persistence, file watching, grouping by monitor setup
   SystemMonitor.swift   Accessibility permission and display change monitoring
-  AX.swift              Accessibility API: list windows, move/resize, page URL of a browser window
+  AX.swift              Accessibility API: list windows, verified move/resize with retries, page URL of a browser window
+  ApplyLog.swift        apply.log writer
   WindowCapture.swift   collect open windows front to back
   LayoutApplier.swift   matching, launching/reopening apps, browser page resolution, raising
   BrowserSupport.swift  browser detection, URL matching, AppleScript tab search, new windows
