@@ -127,6 +127,8 @@ struct WindowEntry: Identifiable, Hashable, Codable {
     var enabled: Bool
     /// 저장 당시 이 창이 있던 모니터 (DisplayInfo.id). 모니터 구성이 바뀌었을 때 위치를 맞추는 데 씀
     var displayID: String?
+    /// 브라우저 창일 때 이 자리에 둘 페이지 주소. 있으면 제목보다 우선해서 그 페이지 탭이 있는 창을 찾고, 없으면 새 창으로 연다
+    var url: String?
 
     init(id: UUID = UUID(),
          bundleID: String,
@@ -135,7 +137,8 @@ struct WindowEntry: Identifiable, Hashable, Codable {
          titleMatch: TitleMatch = .auto,
          frame: CGRect,
          enabled: Bool = true,
-         displayID: String? = nil) {
+         displayID: String? = nil,
+         url: String? = nil) {
         self.id = id
         self.bundleID = bundleID
         self.appName = appName
@@ -147,6 +150,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
         self.height = frame.size.height.rounded()
         self.enabled = enabled
         self.displayID = displayID
+        self.url = url
     }
 
     var frame: CGRect {
@@ -160,11 +164,16 @@ struct WindowEntry: Identifiable, Hashable, Codable {
     }
 
     var displayName: String {
-        title.isEmpty ? appName : "\(appName) – \(title)"
+        let detail = title.isEmpty ? (url ?? "") : title
+        return detail.isEmpty ? appName : "\(appName) – \(detail)"
+    }
+
+    var hasURL: Bool {
+        !(url ?? "").trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, bundleID, appName, title, titleMatch, x, y, width, height, enabled, displayID
+        case id, bundleID, appName, title, titleMatch, x, y, width, height, enabled, displayID, url
     }
 
     // 손으로 편집한 JSON에서 일부 키가 빠져 있어도 읽을 수 있도록 관대하게 디코딩
@@ -181,6 +190,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
         height = try c.decodeIfPresent(Double.self, forKey: .height) ?? 600
         enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         displayID = try c.decodeIfPresent(String.self, forKey: .displayID)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
     }
 }
 

@@ -60,6 +60,40 @@ enum AX {
         return (p1 || p2) && s
     }
 
+    /// 브라우저 창이 보여주는 페이지 주소 (활성 탭). 창 → 웹 영역(AXWebArea)의 AXURL을 찾는다.
+    /// 다른 탭의 주소는 접근성 API로 볼 수 없다.
+    static func webURL(of window: AXUIElement, maxDepth: Int = 16, maxNodes: Int = 1500) -> String? {
+        if let doc = string(window, kAXDocumentAttribute), doc.hasPrefix("http") { return doc }
+        var queue: [(AXUIElement, Int)] = [(window, 0)]
+        var visited = 0
+        while !queue.isEmpty && visited < maxNodes {
+            let (element, depth) = queue.removeFirst()
+            visited += 1
+            let role = string(element, kAXRoleAttribute) ?? ""
+            if role == "AXWebArea" {
+                if let u = urlString(element, "AXURL") { return u }
+                if let d = string(element, kAXDocumentAttribute) { return d }
+                continue
+            }
+            guard depth < maxDepth,
+                  let children = copyAttribute(element, kAXChildrenAttribute) as? [AXUIElement] else { continue }
+            queue.append(contentsOf: children.map { ($0, depth + 1) })
+        }
+        return nil
+    }
+
+    static func urlString(_ element: AXUIElement, _ attribute: String) -> String? {
+        guard let v = copyAttribute(element, attribute) else { return nil }
+        if let u = v as? URL { return u.absoluteString }
+        if let u = v as? NSURL { return u.absoluteString }
+        if let s = v as? String { return s }
+        return nil
+    }
+
+    static func isSame(_ a: AXUIElement, _ b: AXUIElement) -> Bool {
+        CFEqual(a, b)
+    }
+
     static func pid(of element: AXUIElement) -> pid_t {
         var pid: pid_t = 0
         return AXUIElementGetPid(element, &pid) == .success ? pid : 0

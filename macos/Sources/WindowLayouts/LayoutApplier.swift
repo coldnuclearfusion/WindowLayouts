@@ -133,10 +133,16 @@ final class LayoutApplier {
         let missing = bundleIDs.filter { runningApps(bundleID: $0).isEmpty }
         // 프로세스는 살아 있지만 창이 하나도 없는 앱 (창을 다 닫아도 앱은 남아 있는 macOS 특성)
         let windowless = bundleIDs.filter { id in
-            !missing.contains(id) && runningApps(bundleID: id).allSatisfy { AX.windows(for: $0).isEmpty }
+            guard !missing.contains(id) else { return false }
+            // 브라우저 항목이 전부 주소를 가지고 있으면 주소로 새 창을 열 것이므로 여기서는 제외
+            let appEntries = entries.filter { $0.bundleID == id }
+            if BrowserSupport.isBrowser(id) && appEntries.allSatisfy(\.hasURL) { return false }
+            return runningApps(bundleID: id).allSatisfy { AX.windows(for: $0).isEmpty }
         }
         let needsOpen = missing + windowless
         var skipped = Set<String>()
+        // "지금 있는 창만 배치"면 브라우저 페이지도 새 창으로 열지 않는다
+        var allowNewWindows = layout.launchPolicy != .runningOnly
 
         func label(_ bundleID: String) -> String {
             layout.appName(for: bundleID) + (windowless.contains(bundleID) ? " (실행 중이지만 창 없음)" : "")
@@ -174,6 +180,7 @@ final class LayoutApplier {
                 }
                 await waitForWindows(toWait)
             } else {
+                allowNewWindows = false
                 for bundleID in needsOpen {
                     skipped.insert(bundleID)
                     report.notRunning.append(label(bundleID))
@@ -186,9 +193,26 @@ final class LayoutApplier {
         for bundleID in bundleIDs where !skipped.contains(bundleID) {
             let apps = runningApps(bundleID: bundleID)
             for app in apps where app.isHidden { app.unhide() }
-            let windows = apps.flatMap { AX.windows(for: $0) }
-            let appEntries = entries.filter { $0.bundleID == bundleID }
-            for (entry, window) in WindowMatcher.match(entries: appEntries, windows: windows) {
+            var windows = apps.flatMap { AX.windows(for: $0) }
+            var appEntries = entries.filter { $0.bundleID == bundleID }
+            var matches: [(entry: WindowEntry, window: AXWindow?)] = []
+
+            // 브라우저: 주소가 지정된 항목은 그 페이지 탭이 있는 창을 먼저 찾고, 없으면 새 창으로 연다
+            if BrowserSupport.isBrowser(bundleID), let app = apps.first {
+                for entry in appEntries where entry.hasURL {
+                    let result = await resolveBrowserWindow(for: entry, app: app, windows: windows,
+                                                            allowNewWindow: allowNewWindows)
+                    if let note = result.note, !report.notes.contains(note) { report.notes.append(note) }
+                    if let window = result.window {
+                        matches.append((entry, window))
+                        windows.removeAll { AX.isSame($0.element, window.element) }
+                        appEntries.removeAll { $0.id == entry.id }
+                    }
+                }
+            }
+            matches += WindowMatcher.match(entries: appEntries, windows: windows)
+
+            for (entry, window) in matches {
                 guard let window else {
                     report.unmatched.append(entry.displayName)
                     continue
@@ -213,6 +237,62 @@ final class LayoutApplier {
 
         LayoutStore.shared.lastAppliedID = layout.id
         lastReport = report
+    }
+
+    private struct BrowserResolution {
+        var window: AXWindow?
+        var note: String?
+    }
+
+    /// 주소가 지정된 브라우저 항목에 쓸 창을 정한다.
+    /// 1) AppleScript로 모든 탭을 뒤져 맞는 탭을 활성화 (Safari, Chrome 계열)
+    /// 2) 접근성 API로 각 창의 활성 탭 주소 확인 (Firefox 등)
+    /// 3) 없으면 새 창으로 열고 창이 생길 때까지 기다림
+    @MainActor
+    private func resolveBrowserWindow(for entry: WindowEntry, app: NSRunningApplication,
+                                      windows: [AXWindow], allowNewWindow: Bool) async -> BrowserResolution {
+        let url = (entry.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        var scriptingNote: String?
+
+        do {
+            let hits = try BrowserSupport.listTabs(app: app)
+            if let hit = hits.first(where: { BrowserSupport.matches(saved: url, candidate: $0.url) }),
+               let bounds = try BrowserSupport.activate(hit, app: app) {
+                let fresh = AX.windows(for: app)
+                let candidates = fresh.filter { $0.frame.approximatelyEquals(bounds, tolerance: 4) }
+                if let w = candidates.first(where: { c in windows.contains { AX.isSame($0.element, c.element) } })
+                    ?? candidates.first {
+                    return BrowserResolution(window: w, note: nil)
+                }
+            }
+        } catch BrowserSupport.ScriptError.notPermitted {
+            scriptingNote = "\(entry.appName)의 숨은 탭까지 검색하려면 시스템 설정 › 개인정보 보호 및 보안 › 자동화에서 WindowLayouts가 \(entry.appName)을(를) 제어하도록 허용하세요. 지금은 각 창의 활성 탭만 확인했습니다."
+        } catch {
+            // AppleScript를 지원하지 않는 브라우저 등: 아래 접근성 경로로
+        }
+
+        for w in windows {
+            if let current = AX.webURL(of: w.element), BrowserSupport.matches(saved: url, candidate: current) {
+                return BrowserResolution(window: w, note: scriptingNote)
+            }
+        }
+
+        guard allowNewWindow else { return BrowserResolution(window: nil, note: scriptingNote) }
+        let before = AX.windows(for: app).map(\.element)
+        guard BrowserSupport.openInNewWindow(url, app: app) else {
+            return BrowserResolution(window: nil, note: "\(entry.appName)에서 \(url) 을(를) 새 창으로 열지 못했습니다.")
+        }
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(300))
+            let now = AX.windows(for: app)
+            if let fresh = now.first(where: { w in !before.contains { AX.isSame($0, w.element) } }) {
+                try? await Task.sleep(for: .milliseconds(300))
+                return BrowserResolution(window: fresh, note: scriptingNote)
+            }
+        }
+        return BrowserResolution(window: nil,
+                                 note: "\(entry.appName)에서 \(url) 새 창이 열리기를 기다렸지만 나타나지 않았습니다.")
     }
 
     /// 앱 단위로 뒤에서부터 활성화하고 창을 올려서, 마지막에 첫 항목의 앱이 맨 앞에 오게 한다.

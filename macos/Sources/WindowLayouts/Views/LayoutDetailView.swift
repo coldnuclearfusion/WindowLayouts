@@ -70,6 +70,16 @@ struct LayoutDetailView: View {
                 }
                 .width(min: 150, ideal: 240)
 
+                TableColumn("페이지 주소 (브라우저)") { row in
+                    TextField("", text: urlBinding(row.id))
+                        .textFieldStyle(.plain)
+                        .disabled(!BrowserSupport.isBrowser(row.bundleID))
+                        .help(BrowserSupport.isBrowser(row.bundleID)
+                              ? "이 주소의 탭이 있는 창을 이 자리에 두고, 없으면 새 창으로 엽니다"
+                              : "브라우저 창에만 씁니다")
+                }
+                .width(min: 120, ideal: 200)
+
                 TableColumn("찾기") { row in
                     Picker("", selection: entry(row.id).titleMatch) {
                         ForEach(TitleMatch.allCases) { m in
@@ -178,6 +188,17 @@ struct LayoutDetailView: View {
             .fixedSize()
         }
         .font(.callout)
+    }
+
+    private func urlBinding(_ id: UUID) -> Binding<String> {
+        let e = entry(id)
+        return Binding(
+            get: { e.wrappedValue.url ?? "" },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                e.wrappedValue.url = trimmed.isEmpty ? nil : trimmed
+            }
+        )
     }
 
     private func numberField(_ value: Binding<Double>) -> some View {

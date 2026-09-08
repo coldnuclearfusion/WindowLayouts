@@ -26,6 +26,8 @@
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>브라우저에서 저장된 주소의 탭을 찾아 활성화하거나 새 창으로 열기 위해 필요합니다.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

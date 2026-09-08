@@ -8,6 +8,7 @@ Save window layouts and restore them in one click from the menu bar.
 - **Multi-window apps.** Several windows of the same app are matched by title, then by order.
 - **Missing apps.** When an app in the layout isn't running: ask, launch it, or arrange only what's running (per layout).
 - **Raise on apply.** Optionally bring the layout's windows to the front, in the saved order.
+- **Browser pages.** A browser window can carry a page address: on apply, the window that has that tab is used (tab activated), or the page is opened in a new window.
 - Starts at login and lives in the menu bar, no Dock icon.
 
 ## Platforms
@@ -30,7 +31,7 @@ cd WindowLayouts/macos
 ./install.sh
 ```
 
-Then allow the app under System Settings › Privacy & Security › Accessibility. See [`macos/README.md`](macos/README.md) (Korean) for details: code signing so the permission survives rebuilds, the JSON format, and installing on several Macs.
+Then allow the app under System Settings › Privacy & Security › Accessibility. See [`macos/README.md`](macos/README.md) for details: code signing so the permission survives rebuilds, the JSON format, browser page handling, and installing on several Macs.
 
 ## License
 

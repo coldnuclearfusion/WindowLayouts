@@ -10,13 +10,16 @@ struct CapturedWindow: Identifiable {
     let frame: CGRect
     let element: AXUIElement
     let displayID: String?
+    /// 브라우저 창이면 활성 탭의 주소
+    let url: String?
 
-    /// includeTitle이 false면 제목을 비우고 "순서만"으로 찾게 저장한다.
-    func makeEntry(includeTitle: Bool = true) -> WindowEntry {
+    /// includeTitle이 false면 제목을 비우고 "순서만"으로 찾게 저장한다. includeURL이 false면 주소를 저장하지 않는다.
+    func makeEntry(includeTitle: Bool = true, includeURL: Bool = true) -> WindowEntry {
         WindowEntry(bundleID: bundleID, appName: appName,
                     title: includeTitle ? title : "",
                     titleMatch: includeTitle ? .auto : .order,
-                    frame: frame, displayID: displayID)
+                    frame: frame, displayID: displayID,
+                    url: includeURL ? url : nil)
     }
 }
 
@@ -37,8 +40,9 @@ enum WindowCapture {
             for w in AX.windows(for: app) where !w.isMinimized && w.frame.width > 1 && w.frame.height > 1 {
                 let center = CGPoint(x: w.frame.midX, y: w.frame.midY)
                 let display = config.display(containing: center) ?? config.display(containing: w.frame.origin)
+                let url = BrowserSupport.isBrowser(bundleID) ? AX.webURL(of: w.element) : nil
                 captured.append(CapturedWindow(bundleID: bundleID, appName: name, title: w.title,
-                                               frame: w.frame, element: w.element, displayID: display?.id))
+                                               frame: w.frame, element: w.element, displayID: display?.id, url: url))
             }
         }
 
