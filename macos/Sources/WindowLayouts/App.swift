@@ -49,4 +49,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
+
+    /// windowlayouts://apply?name=배치이름  또는  windowlayouts://apply?id=UUID
+    /// 터미널(open "windowlayouts://apply?name=…"), 단축어, 단축키 앱에서 배치를 적용할 때 쓴다.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard url.scheme?.lowercased() == "windowlayouts", url.host?.lowercased() == "apply" else { continue }
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let name = items.first { $0.name == "name" }?.value
+            let id = items.first { $0.name == "id" }?.value
+            let store = LayoutStore.shared
+            guard let layout = store.layouts.first(where: {
+                ($0.id.uuidString.caseInsensitiveCompare(id ?? "") == .orderedSame) || (name != nil && $0.name == name)
+            }) else {
+                ApplyLog.write("URL로 요청한 배치를 찾지 못함: \(url.absoluteString)")
+                continue
+            }
+            Task { await LayoutApplier.shared.apply(layout) }
+        }
+    }
 }

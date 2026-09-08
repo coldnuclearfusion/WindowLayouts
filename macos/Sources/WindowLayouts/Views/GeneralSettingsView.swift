@@ -83,7 +83,11 @@ struct GeneralSettingsView: View {
                     Button("파일 열기") { NSWorkspace.shared.open(store.fileURL) }
                     Button("Finder에서 보기") { NSWorkspace.shared.activateFileViewerSelecting([store.fileURL]) }
                     Button("다시 읽기") { store.reload() }
+                    Button("적용 로그 열기") { NSWorkspace.shared.open(ApplyLog.url) }
                 }
+                Text("터미널이나 단축어에서 적용하려면: open \"windowlayouts://apply?name=배치이름\"")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("JSON 파일을 직접 편집해 저장하면 앱이 자동으로 다시 읽습니다. 창 항목의 x, y, width, height, title, titleMatch(auto/title/order), enabled 를 고칠 수 있습니다.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
