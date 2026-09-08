@@ -14,6 +14,10 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/WindowLayouts"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp ../shared/strings.json "$APP/Contents/Resources/strings.json"
+for lproj in Resources/*.lproj; do
+  [ -d "$lproj" ] && cp -R "$lproj" "$APP/Contents/Resources/"
+done
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 IDENTITY="${CODESIGN_IDENTITY:-}"

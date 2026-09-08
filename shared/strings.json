@@ -1,0 +1,935 @@
+{
+  "_comment": "Shared UI strings for all platforms. Keys are stable identifiers; {name}-style placeholders are substituted at runtime. To add a language, add its code to 'languages' and to every entry.",
+  "languages": {
+    "ko": "한국어",
+    "en": "English",
+    "ja": "日本語",
+    "zh-Hans": "中文（简体）"
+  },
+  "strings": {
+    "app.name": {
+      "ko": "창 배치",
+      "en": "WindowLayouts",
+      "ja": "ウィンドウ配置",
+      "zh-Hans": "窗口布局"
+    },
+    "menu.need_accessibility": {
+      "ko": "손쉬운 사용 권한이 필요합니다…",
+      "en": "Accessibility permission needed…",
+      "ja": "アクセシビリティの許可が必要です…",
+      "zh-Hans": "需要辅助功能权限…"
+    },
+    "menu.current_config": {
+      "ko": "현재 모니터 구성: {name}",
+      "en": "Current monitor setup: {name}",
+      "ja": "現在のモニター構成: {name}",
+      "zh-Hans": "当前显示器配置：{name}"
+    },
+    "menu.other_config": {
+      "ko": "다른 구성: {name}",
+      "en": "Other setup: {name}",
+      "ja": "他の構成: {name}",
+      "zh-Hans": "其他配置：{name}"
+    },
+    "menu.no_layouts_in_config": {
+      "ko": "이 구성에 저장된 배치가 없습니다",
+      "en": "No layouts saved for this setup",
+      "ja": "この構成に保存された配置はありません",
+      "zh-Hans": "此配置下没有已保存的布局"
+    },
+    "menu.save_current": {
+      "ko": "현재 창 배치 저장…",
+      "en": "Save Current Windows…",
+      "ja": "現在のウィンドウ配置を保存…",
+      "zh-Hans": "保存当前窗口布局…"
+    },
+    "menu.settings": {
+      "ko": "상세 설정…",
+      "en": "Settings…",
+      "ja": "詳細設定…",
+      "zh-Hans": "详细设置…"
+    },
+    "menu.quit": {
+      "ko": "종료",
+      "en": "Quit",
+      "ja": "終了",
+      "zh-Hans": "退出"
+    },
+    "sidebar.current_config_header": {
+      "ko": "현재 모니터 구성",
+      "en": "Current monitor setup",
+      "ja": "現在のモニター構成",
+      "zh-Hans": "当前显示器配置"
+    },
+    "sidebar.other_config_header": {
+      "ko": "다른 모니터 구성",
+      "en": "Other monitor setup",
+      "ja": "他のモニター構成",
+      "zh-Hans": "其他显示器配置"
+    },
+    "sidebar.no_layouts": {
+      "ko": "저장된 배치가 없습니다",
+      "en": "No layouts saved",
+      "ja": "保存された配置はありません",
+      "zh-Hans": "没有已保存的布局"
+    },
+    "sidebar.general": {
+      "ko": "일반 설정",
+      "en": "General",
+      "ja": "一般設定",
+      "zh-Hans": "常规设置"
+    },
+    "sidebar.save_button": {
+      "ko": "현재 창 배치 저장",
+      "en": "Save Current Windows",
+      "ja": "現在のウィンドウ配置を保存",
+      "zh-Hans": "保存当前窗口布局"
+    },
+    "sidebar.save_tooltip": {
+      "ko": "현재 열린 창들을 새 배치로 저장",
+      "en": "Save the currently open windows as a new layout",
+      "ja": "現在開いているウィンドウを新しい配置として保存します",
+      "zh-Hans": "将当前打开的窗口保存为新布局"
+    },
+    "sidebar.placeholder_title": {
+      "ko": "배치를 선택하세요",
+      "en": "Select a layout",
+      "ja": "配置を選択してください",
+      "zh-Hans": "请选择一个布局"
+    },
+    "sidebar.placeholder_body": {
+      "ko": "왼쪽 목록에서 배치를 고르거나, + 버튼으로 현재 창 배치를 저장하세요.",
+      "en": "Pick a layout on the left, or press + to save the current window arrangement.",
+      "ja": "左のリストから配置を選ぶか、+ ボタンで現在のウィンドウ配置を保存してください。",
+      "zh-Hans": "在左侧列表中选择布局，或点击 + 保存当前窗口布局。"
+    },
+    "context.apply": {
+      "ko": "적용",
+      "en": "Apply",
+      "ja": "適用",
+      "zh-Hans": "应用"
+    },
+    "context.duplicate": {
+      "ko": "복제",
+      "en": "Duplicate",
+      "ja": "複製",
+      "zh-Hans": "复制"
+    },
+    "context.delete": {
+      "ko": "삭제…",
+      "en": "Delete…",
+      "ja": "削除…",
+      "zh-Hans": "删除…"
+    },
+    "context.move_up": {
+      "ko": "위로",
+      "en": "Move Up",
+      "ja": "上へ",
+      "zh-Hans": "上移"
+    },
+    "context.move_down": {
+      "ko": "아래로",
+      "en": "Move Down",
+      "ja": "下へ",
+      "zh-Hans": "下移"
+    },
+    "delete.title": {
+      "ko": "‘{name}’ 배치를 삭제할까요?",
+      "en": "Delete the layout “{name}”?",
+      "ja": "配置「{name}」を削除しますか？",
+      "zh-Hans": "要删除布局“{name}”吗？"
+    },
+    "delete.message": {
+      "ko": "이 작업은 되돌릴 수 없습니다.",
+      "en": "This cannot be undone.",
+      "ja": "この操作は取り消せません。",
+      "zh-Hans": "此操作无法撤销。"
+    },
+    "delete.confirm": {
+      "ko": "삭제",
+      "en": "Delete",
+      "ja": "削除",
+      "zh-Hans": "删除"
+    },
+    "common.cancel": {
+      "ko": "취소",
+      "en": "Cancel",
+      "ja": "キャンセル",
+      "zh-Hans": "取消"
+    },
+    "common.save": {
+      "ko": "저장",
+      "en": "Save",
+      "ja": "保存",
+      "zh-Hans": "保存"
+    },
+    "common.add": {
+      "ko": "추가",
+      "en": "Add",
+      "ja": "追加",
+      "zh-Hans": "添加"
+    },
+    "common.change": {
+      "ko": "변경",
+      "en": "Change",
+      "ja": "変更",
+      "zh-Hans": "更改"
+    },
+    "layout.copy_suffix": {
+      "ko": " 복사본",
+      "en": " copy",
+      "ja": " のコピー",
+      "zh-Hans": " 副本"
+    },
+    "layout.untitled": {
+      "ko": "이름 없음",
+      "en": "Untitled",
+      "ja": "名称未設定",
+      "zh-Hans": "未命名"
+    },
+    "layout.default_name": {
+      "ko": "배치 {n}",
+      "en": "Layout {n}",
+      "ja": "配置 {n}",
+      "zh-Hans": "布局 {n}"
+    },
+    "detail.name_placeholder": {
+      "ko": "배치 이름",
+      "en": "Layout name",
+      "ja": "配置名",
+      "zh-Hans": "布局名称"
+    },
+    "detail.apply_now": {
+      "ko": "지금 적용",
+      "en": "Apply Now",
+      "ja": "今すぐ適用",
+      "zh-Hans": "立即应用"
+    },
+    "detail.policy_label": {
+      "ko": "실행 중이 아니거나 창이 없는 앱이 있을 때:",
+      "en": "When an app isn't running or has no window:",
+      "ja": "アプリが起動していない、またはウィンドウがないとき:",
+      "zh-Hans": "当应用未运行或没有窗口时："
+    },
+    "detail.raise": {
+      "ko": "적용할 때 이 창들을 다른 창들 위로 올리기 (표의 위 항목이 가장 앞)",
+      "en": "Bring these windows to the front when applying (top row ends up in front)",
+      "ja": "適用時にこれらのウィンドウを最前面にする（表の上の項目ほど前）",
+      "zh-Hans": "应用时将这些窗口置于最前（表格中越靠上越靠前）"
+    },
+    "policy.ask": {
+      "ko": "매번 물어보기",
+      "en": "Ask every time",
+      "ja": "毎回確認する",
+      "zh-Hans": "每次询问"
+    },
+    "policy.launchMissing": {
+      "ko": "실행하고 새 창 열기",
+      "en": "Launch and open windows",
+      "ja": "起動して新しいウィンドウを開く",
+      "zh-Hans": "启动并打开新窗口"
+    },
+    "policy.runningOnly": {
+      "ko": "지금 있는 창만 배치",
+      "en": "Only place existing windows",
+      "ja": "今あるウィンドウだけ配置する",
+      "zh-Hans": "仅排列现有窗口"
+    },
+    "match.auto": {
+      "ko": "자동",
+      "en": "Auto",
+      "ja": "自動",
+      "zh-Hans": "自动"
+    },
+    "match.title": {
+      "ko": "제목만",
+      "en": "Title only",
+      "ja": "タイトルのみ",
+      "zh-Hans": "仅标题"
+    },
+    "match.order": {
+      "ko": "순서만",
+      "en": "Order only",
+      "ja": "順序のみ",
+      "zh-Hans": "仅顺序"
+    },
+    "column.app": {
+      "ko": "앱",
+      "en": "App",
+      "ja": "アプリ",
+      "zh-Hans": "应用"
+    },
+    "column.title": {
+      "ko": "창 제목 (찾을 때 사용)",
+      "en": "Window title (used for matching)",
+      "ja": "ウィンドウタイトル（検索に使用）",
+      "zh-Hans": "窗口标题（用于匹配）"
+    },
+    "column.url": {
+      "ko": "페이지 주소 (브라우저)",
+      "en": "Page address (browser)",
+      "ja": "ページアドレス（ブラウザ）",
+      "zh-Hans": "页面地址（浏览器）"
+    },
+    "column.url_help_browser": {
+      "ko": "이 주소의 탭이 있는 창을 이 자리에 두고, 없으면 새 창으로 엽니다",
+      "en": "Uses the window that has a tab with this address, or opens it in a new window",
+      "ja": "このアドレスのタブがあるウィンドウをここに置き、なければ新しいウィンドウで開きます",
+      "zh-Hans": "把含有此地址标签页的窗口放在这里，没有则在新窗口中打开"
+    },
+    "column.url_help_other": {
+      "ko": "브라우저 창에만 씁니다",
+      "en": "Browser windows only",
+      "ja": "ブラウザのウィンドウにのみ使います",
+      "zh-Hans": "仅用于浏览器窗口"
+    },
+    "column.match": {
+      "ko": "찾기",
+      "en": "Match",
+      "ja": "検索",
+      "zh-Hans": "匹配"
+    },
+    "column.monitor": {
+      "ko": "모니터",
+      "en": "Monitor",
+      "ja": "モニター",
+      "zh-Hans": "显示器"
+    },
+    "column.x": {
+      "ko": "X",
+      "en": "X",
+      "ja": "X",
+      "zh-Hans": "X"
+    },
+    "column.y": {
+      "ko": "Y",
+      "en": "Y",
+      "ja": "Y",
+      "zh-Hans": "Y"
+    },
+    "column.width": {
+      "ko": "너비",
+      "en": "Width",
+      "ja": "幅",
+      "zh-Hans": "宽度"
+    },
+    "column.height": {
+      "ko": "높이",
+      "en": "Height",
+      "ja": "高さ",
+      "zh-Hans": "高度"
+    },
+    "detail.add_windows": {
+      "ko": "현재 열린 창 추가…",
+      "en": "Add Open Windows…",
+      "ja": "開いているウィンドウを追加…",
+      "zh-Hans": "添加已打开的窗口…"
+    },
+    "detail.refresh": {
+      "ko": "현재 위치로 갱신",
+      "en": "Update from Current Positions",
+      "ja": "現在の位置で更新",
+      "zh-Hans": "按当前位置更新"
+    },
+    "detail.refresh_help": {
+      "ko": "저장된 창들을 지금 열린 창에서 찾아 위치와 크기를 다시 읽습니다",
+      "en": "Finds the saved windows among the open ones and re-reads their position and size",
+      "ja": "保存済みのウィンドウを今開いているものから探し、位置とサイズを読み直します",
+      "zh-Hans": "在当前打开的窗口中找到已保存的窗口，并重新读取其位置和大小"
+    },
+    "detail.delete_selected": {
+      "ko": "선택 삭제",
+      "en": "Delete Selected",
+      "ja": "選択を削除",
+      "zh-Hans": "删除所选"
+    },
+    "detail.move_up_help": {
+      "ko": "선택한 창을 한 칸 앞으로",
+      "en": "Move the selected window one step forward",
+      "ja": "選択したウィンドウを1つ前へ",
+      "zh-Hans": "将所选窗口前移一位"
+    },
+    "detail.move_down_help": {
+      "ko": "선택한 창을 한 칸 뒤로",
+      "en": "Move the selected window one step back",
+      "ja": "選択したウィンドウを1つ後ろへ",
+      "zh-Hans": "将所选窗口后移一位"
+    },
+    "detail.count": {
+      "ko": "{count}개 창 · 좌표는 주 화면 왼쪽 위가 (0, 0)",
+      "en": "{count} windows · coordinates: the main display's top-left is (0, 0)",
+      "ja": "{count} 個のウィンドウ · 座標はメインディスプレイの左上が (0, 0)",
+      "zh-Hans": "{count} 个窗口 · 坐标以主显示器左上角为 (0, 0)"
+    },
+    "detail.refreshed": {
+      "ko": "{count}개 창의 위치를 현재 상태로 갱신하고, 모니터 구성을 현재 것으로 바꿨습니다.",
+      "en": "Updated {count} windows to their current positions and set the monitor setup to the current one.",
+      "ja": "{count} 個のウィンドウの位置を現在の状態に更新し、モニター構成を現在のものにしました。",
+      "zh-Hans": "已将 {count} 个窗口更新为当前位置，并将显示器配置设为当前配置。"
+    },
+    "display.config": {
+      "ko": "모니터 구성: {name}",
+      "en": "Monitor setup: {name}",
+      "ja": "モニター構成: {name}",
+      "zh-Hans": "显示器配置：{name}"
+    },
+    "display.same": {
+      "ko": "현재와 같음",
+      "en": "same as now",
+      "ja": "現在と同じ",
+      "zh-Hans": "与当前相同"
+    },
+    "display.rearranged": {
+      "ko": "같은 모니터지만 배열이 달라, 적용할 때 위치를 맞춥니다",
+      "en": "same monitors, different arrangement; positions are adjusted when applying",
+      "ja": "同じモニターですが配置が違うため、適用時に位置を合わせます",
+      "zh-Hans": "显示器相同但排列不同，应用时会调整位置"
+    },
+    "display.different": {
+      "ko": "현재 구성과 달라, 적용할 때 창이 있던 모니터를 찾아 위치를 맞춥니다",
+      "en": "different from now; when applying, each window is moved to the monitor it was on",
+      "ja": "現在の構成と違うため、適用時に各ウィンドウがあったモニターを探して位置を合わせます",
+      "zh-Hans": "与当前配置不同，应用时会把每个窗口移到它原来所在的显示器"
+    },
+    "display.any": {
+      "ko": "모니터 구성: 무관 (모든 구성에서 표시, 좌표 그대로 적용)",
+      "en": "Monitor setup: any (shown under every setup, coordinates applied as-is)",
+      "ja": "モニター構成: 指定なし（すべての構成で表示、座標をそのまま適用）",
+      "zh-Hans": "显示器配置：不限（在所有配置下显示，按原坐标应用）"
+    },
+    "display.set_current": {
+      "ko": "현재 모니터 구성으로 지정",
+      "en": "Set to current monitor setup",
+      "ja": "現在のモニター構成に設定",
+      "zh-Hans": "设为当前显示器配置"
+    },
+    "display.set_any": {
+      "ko": "구성 무관으로 지정",
+      "en": "Set to any setup",
+      "ja": "指定なしに設定",
+      "zh-Hans": "设为不限配置"
+    },
+    "display.none": {
+      "ko": "모니터 없음",
+      "en": "No monitors",
+      "ja": "モニターなし",
+      "zh-Hans": "无显示器"
+    },
+    "display.main_suffix": {
+      "ko": " (주 화면)",
+      "en": " (main)",
+      "ja": "（メイン）",
+      "zh-Hans": "（主显示器）"
+    },
+    "capture.title_new": {
+      "ko": "현재 창 배치 저장",
+      "en": "Save Current Windows",
+      "ja": "現在のウィンドウ配置を保存",
+      "zh-Hans": "保存当前窗口布局"
+    },
+    "capture.title_add": {
+      "ko": "현재 열린 창 추가",
+      "en": "Add Open Windows",
+      "ja": "開いているウィンドウを追加",
+      "zh-Hans": "添加已打开的窗口"
+    },
+    "capture.config": {
+      "ko": "모니터 구성: {name}",
+      "en": "Monitor setup: {name}",
+      "ja": "モニター構成: {name}",
+      "zh-Hans": "显示器配置：{name}"
+    },
+    "capture.hint": {
+      "ko": "포함할 창을 선택하세요. 앱 이름을 누르면 그 앱의 창을 한꺼번에 켜고 끕니다.",
+      "en": "Choose the windows to include. Click an app name to toggle all of its windows.",
+      "ja": "含めるウィンドウを選んでください。アプリ名をクリックするとそのアプリのウィンドウをまとめて切り替えます。",
+      "zh-Hans": "选择要包含的窗口。点击应用名可一次切换该应用的全部窗口。"
+    },
+    "capture.save_titles": {
+      "ko": "창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)",
+      "en": "Also save window titles (used to tell apart several windows of one app; off = match by order only)",
+      "ja": "ウィンドウタイトルも保存（同じアプリの複数ウィンドウの区別に使用。オフなら順序のみで検索）",
+      "zh-Hans": "同时保存窗口标题（用于区分同一应用的多个窗口；关闭则仅按顺序匹配）"
+    },
+    "capture.save_urls": {
+      "ko": "브라우저 창은 페이지 주소도 저장 (적용할 때 그 페이지 탭이 있는 창을 찾고, 없으면 새 창으로 엶)",
+      "en": "Also save the page address of browser windows (when applying, the window with that tab is used, or a new window is opened)",
+      "ja": "ブラウザのウィンドウはページアドレスも保存（適用時にそのタブがあるウィンドウを使い、なければ新しいウィンドウを開く）",
+      "zh-Hans": "同时保存浏览器窗口的页面地址（应用时使用含有该标签页的窗口，没有则打开新窗口）"
+    },
+    "capture.untitled_window": {
+      "ko": "(제목 없음)",
+      "en": "(untitled)",
+      "ja": "（タイトルなし）",
+      "zh-Hans": "（无标题）"
+    },
+    "capture.selected_count": {
+      "ko": "{count}개 창 선택됨",
+      "en": "{count} windows selected",
+      "ja": "{count} 個のウィンドウを選択",
+      "zh-Hans": "已选择 {count} 个窗口"
+    },
+    "capture.no_windows": {
+      "ko": "열려 있는 창을 찾지 못했습니다.",
+      "en": "No open windows were found.",
+      "ja": "開いているウィンドウが見つかりませんでした。",
+      "zh-Hans": "未找到打开的窗口。"
+    },
+    "capture.need_accessibility": {
+      "ko": "창 목록을 읽으려면 손쉬운 사용 권한이 필요합니다.",
+      "en": "Accessibility permission is needed to read the window list.",
+      "ja": "ウィンドウ一覧を読むにはアクセシビリティの許可が必要です。",
+      "zh-Hans": "读取窗口列表需要辅助功能权限。"
+    },
+    "capture.allow_in_settings": {
+      "ko": "시스템 설정에서 허용하기",
+      "en": "Allow in System Settings",
+      "ja": "システム設定で許可する",
+      "zh-Hans": "在系统设置中允许"
+    },
+    "capture.select_all_app": {
+      "ko": "이 앱의 창 모두 선택",
+      "en": "Select all windows of this app",
+      "ja": "このアプリのウィンドウをすべて選択",
+      "zh-Hans": "选择此应用的所有窗口"
+    },
+    "capture.deselect_all_app": {
+      "ko": "이 앱의 창 모두 해제",
+      "en": "Deselect all windows of this app",
+      "ja": "このアプリのウィンドウをすべて解除",
+      "zh-Hans": "取消选择此应用的所有窗口"
+    },
+    "general.startup": {
+      "ko": "시작",
+      "en": "Startup",
+      "ja": "起動",
+      "zh-Hans": "启动"
+    },
+    "general.launch_at_login": {
+      "ko": "로그인할 때 자동으로 실행",
+      "en": "Launch at login",
+      "ja": "ログイン時に自動的に起動",
+      "zh-Hans": "登录时自动启动"
+    },
+    "general.login_needs_approval": {
+      "ko": "시스템 설정 › 일반 › 로그인 항목에서 허용해야 합니다.",
+      "en": "Must be allowed under System Settings › General › Login Items.",
+      "ja": "システム設定 › 一般 › ログイン項目で許可する必要があります。",
+      "zh-Hans": "需要在“系统设置 › 通用 › 登录项”中允许。"
+    },
+    "general.open_login_items": {
+      "ko": "로그인 항목 열기",
+      "en": "Open Login Items",
+      "ja": "ログイン項目を開く",
+      "zh-Hans": "打开登录项"
+    },
+    "general.login_error": {
+      "ko": "설정 실패: {error}",
+      "en": "Could not change the setting: {error}",
+      "ja": "設定できませんでした: {error}",
+      "zh-Hans": "设置失败：{error}"
+    },
+    "general.app_location_hint": {
+      "ko": "앱을 /Applications 에 두고 켜는 것을 권장합니다. 앱 위치를 옮기면 다시 켜야 합니다.",
+      "en": "Keep the app in /Applications before turning this on. Moving the app requires turning it on again.",
+      "ja": "この設定をオンにする前にアプリを /Applications に置いてください。アプリを移動した場合はオンにし直してください。",
+      "zh-Hans": "建议先把应用放到 /Applications 再开启。移动应用后需要重新开启。"
+    },
+    "general.permission": {
+      "ko": "권한",
+      "en": "Permissions",
+      "ja": "権限",
+      "zh-Hans": "权限"
+    },
+    "general.accessibility_ok": {
+      "ko": "손쉬운 사용 권한이 허용되어 있습니다.",
+      "en": "Accessibility permission is granted.",
+      "ja": "アクセシビリティの許可が有効です。",
+      "zh-Hans": "已授予辅助功能权限。"
+    },
+    "general.accessibility_needed": {
+      "ko": "창을 읽고 옮기려면 손쉬운 사용 권한이 필요합니다.",
+      "en": "Accessibility permission is needed to read and move windows.",
+      "ja": "ウィンドウを読み取り移動するにはアクセシビリティの許可が必要です。",
+      "zh-Hans": "读取和移动窗口需要辅助功能权限。"
+    },
+    "general.open_system_settings": {
+      "ko": "시스템 설정 열기",
+      "en": "Open System Settings",
+      "ja": "システム設定を開く",
+      "zh-Hans": "打开系统设置"
+    },
+    "general.accessibility_stale_hint": {
+      "ko": "시스템 설정에서 스위치가 이미 켜져 있는데도 이 메시지가 보이면, 목록에서 WindowLayouts를 선택해 −로 지운 뒤 다시 추가하세요. 앱을 다시 빌드하면 서명이 바뀌어 매번 이렇게 됩니다. 한 번만 하려면 README의 ‘Code signing’ 항목처럼 인증서를 만들어 두세요.",
+      "en": "If the switch is already on in System Settings but this message stays, remove WindowLayouts from the list with − and add it again. Rebuilding the app changes its signature, so this repeats after every rebuild unless the app is signed with a certificate (see “Code signing” in the README).",
+      "ja": "システム設定でスイッチがオンなのにこのメッセージが消えない場合は、リストから WindowLayouts を − で削除して追加し直してください。アプリを再ビルドすると署名が変わるため、証明書で署名しない限り毎回これが必要です（README の「Code signing」を参照）。",
+      "zh-Hans": "如果系统设置中的开关已打开但仍显示此消息，请在列表中用 − 移除 WindowLayouts 后重新添加。重新构建应用会改变签名，除非使用证书签名（见 README 的“Code signing”），否则每次重建后都需要这样做。"
+    },
+    "general.monitors": {
+      "ko": "모니터",
+      "en": "Monitors",
+      "ja": "モニター",
+      "zh-Hans": "显示器"
+    },
+    "general.current_config": {
+      "ko": "현재 구성",
+      "en": "Current setup",
+      "ja": "現在の構成",
+      "zh-Hans": "当前配置"
+    },
+    "general.monitors_note": {
+      "ko": "배치는 저장 당시 모니터 구성과 함께 기록됩니다. 메뉴와 목록에서 현재 구성에 맞는 배치가 먼저 나오고, 다른 구성의 배치를 적용하면 창이 있던 모니터를 찾아 위치를 맞춥니다.",
+      "en": "Each layout records the monitor setup it was saved on. Layouts for the current setup are listed first; applying a layout from another setup moves each window to the monitor it was on.",
+      "ja": "各配置は保存時のモニター構成とともに記録されます。メニューとリストでは現在の構成に合う配置が先に表示され、他の構成の配置を適用すると各ウィンドウがあったモニターを探して位置を合わせます。",
+      "zh-Hans": "每个布局都会记录保存时的显示器配置。菜单和列表中优先显示与当前配置匹配的布局；应用其他配置的布局时，会把每个窗口移到它原来所在的显示器。"
+    },
+    "general.data": {
+      "ko": "배치 데이터",
+      "en": "Layout data",
+      "ja": "配置データ",
+      "zh-Hans": "布局数据"
+    },
+    "general.file": {
+      "ko": "파일",
+      "en": "File",
+      "ja": "ファイル",
+      "zh-Hans": "文件"
+    },
+    "general.open_file": {
+      "ko": "파일 열기",
+      "en": "Open File",
+      "ja": "ファイルを開く",
+      "zh-Hans": "打开文件"
+    },
+    "general.reveal_file": {
+      "ko": "Finder에서 보기",
+      "en": "Show in Finder",
+      "ja": "Finder に表示",
+      "zh-Hans": "在 Finder 中显示"
+    },
+    "general.open_folder": {
+      "ko": "폴더 열기",
+      "en": "Open Folder",
+      "ja": "フォルダを開く",
+      "zh-Hans": "打开文件夹"
+    },
+    "general.reload": {
+      "ko": "다시 읽기",
+      "en": "Reload",
+      "ja": "再読み込み",
+      "zh-Hans": "重新读取"
+    },
+    "general.open_log": {
+      "ko": "적용 로그 열기",
+      "en": "Open Apply Log",
+      "ja": "適用ログを開く",
+      "zh-Hans": "打开应用日志"
+    },
+    "general.cli_hint": {
+      "ko": "터미널이나 단축어에서 적용하려면: {command}",
+      "en": "To apply from a terminal or a shortcut: {command}",
+      "ja": "ターミナルやショートカットから適用するには: {command}",
+      "zh-Hans": "在终端或快捷方式中应用：{command}"
+    },
+    "general.json_hint": {
+      "ko": "JSON 파일을 직접 편집해 저장하면 앱이 자동으로 다시 읽습니다. 창 항목의 x, y, width, height, title, url, titleMatch(auto/title/order), enabled 를 고칠 수 있습니다.",
+      "en": "Editing the JSON file by hand is picked up automatically. Per window you can change x, y, width, height, title, url, titleMatch (auto/title/order) and enabled.",
+      "ja": "JSON ファイルを直接編集して保存すると自動的に再読み込みされます。各ウィンドウの x, y, width, height, title, url, titleMatch（auto/title/order）, enabled を変更できます。",
+      "zh-Hans": "直接编辑并保存 JSON 文件后会自动重新读取。每个窗口可修改 x、y、width、height、title、url、titleMatch（auto/title/order）和 enabled。"
+    },
+    "general.language": {
+      "ko": "언어",
+      "en": "Language",
+      "ja": "言語",
+      "zh-Hans": "语言"
+    },
+    "general.language_system": {
+      "ko": "시스템 언어 따라가기",
+      "en": "Follow system language",
+      "ja": "システムの言語に従う",
+      "zh-Hans": "跟随系统语言"
+    },
+    "general.language_note": {
+      "ko": "언어를 바꾸면 열려 있는 창의 문구가 바로 바뀝니다.",
+      "en": "Changing the language updates the open windows immediately.",
+      "ja": "言語を変更すると開いているウィンドウの表示がすぐに切り替わります。",
+      "zh-Hans": "更改语言后，打开的窗口会立即更新。"
+    },
+    "linux.wayland_note": {
+      "ko": "Wayland 세션에서는 다른 앱의 창을 옮길 수 없어 X11 세션이 필요합니다.",
+      "en": "Wayland sessions cannot move other apps' windows; an X11 session is required.",
+      "ja": "Wayland セッションでは他のアプリのウィンドウを移動できないため、X11 セッションが必要です。",
+      "zh-Hans": "Wayland 会话无法移动其他应用的窗口，需要使用 X11 会话。"
+    },
+    "report.cancelled": {
+      "ko": "‘{name}’ 적용을 취소했습니다.",
+      "en": "Applying “{name}” was cancelled.",
+      "ja": "「{name}」の適用をキャンセルしました。",
+      "zh-Hans": "已取消应用“{name}”。"
+    },
+    "report.headline": {
+      "ko": "‘{name}’ 적용: {placed}개 창 배치됨",
+      "en": "Applied “{name}”: {placed} windows placed",
+      "ja": "「{name}」を適用: {placed} 個のウィンドウを配置",
+      "zh-Hans": "已应用“{name}”：已排列 {placed} 个窗口"
+    },
+    "report.unmatched_suffix": {
+      "ko": ", {count}개 창 못 찾음",
+      "en": ", {count} not found",
+      "ja": "、{count} 個が見つからず",
+      "zh-Hans": "，{count} 个未找到"
+    },
+    "report.mismatched_suffix": {
+      "ko": ", {count}개 크기/위치 다름",
+      "en": ", {count} with different size/position",
+      "ja": "、{count} 個がサイズ/位置違い",
+      "zh-Hans": "，{count} 个大小/位置不同"
+    },
+    "report.failed_suffix": {
+      "ko": ", {count}개 실패",
+      "en": ", {count} failed",
+      "ja": "、{count} 個が失敗",
+      "zh-Hans": "，{count} 个失败"
+    },
+    "report.launched": {
+      "ko": "실행함: {list}",
+      "en": "Launched: {list}",
+      "ja": "起動: {list}",
+      "zh-Hans": "已启动：{list}"
+    },
+    "report.not_running": {
+      "ko": "실행하거나 창을 열지 않아 건너뜀: {list}",
+      "en": "Skipped (not launched, no window opened): {list}",
+      "ja": "起動もウィンドウ作成もせずスキップ: {list}",
+      "zh-Hans": "已跳过（未启动、未打开窗口）：{list}"
+    },
+    "report.unmatched": {
+      "ko": "맞는 창을 못 찾음: {list}",
+      "en": "No matching window: {list}",
+      "ja": "一致するウィンドウなし: {list}",
+      "zh-Hans": "未找到匹配的窗口：{list}"
+    },
+    "report.failed": {
+      "ko": "위치 변경 실패: {list}",
+      "en": "Could not move: {list}",
+      "ja": "移動できず: {list}",
+      "zh-Hans": "无法移动：{list}"
+    },
+    "report.mismatched": {
+      "ko": "요청과 다르게 놓임 (앱이 거부하거나 조정함): {list}",
+      "en": "Placed differently than requested (the app refused or adjusted it): {list}",
+      "ja": "要求と異なる配置（アプリが拒否または調整）: {list}",
+      "zh-Hans": "位置与请求不同（应用拒绝或作了调整）：{list}"
+    },
+    "report.no_accessibility": {
+      "ko": "손쉬운 사용 권한이 없어 창을 옮길 수 없습니다.",
+      "en": "Windows cannot be moved without Accessibility permission.",
+      "ja": "アクセシビリティの許可がないためウィンドウを移動できません。",
+      "zh-Hans": "没有辅助功能权限，无法移动窗口。"
+    },
+    "report.config_differs": {
+      "ko": "저장 당시 모니터 구성({saved})과 지금({current})이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.",
+      "en": "The monitor setup differs from when the layout was saved ({saved} → {current}); windows were fitted to the current screens.",
+      "ja": "保存時のモニター構成（{saved}）と現在（{current}）が異なるため、ウィンドウを現在の画面に合わせて配置しました。",
+      "zh-Hans": "显示器配置与保存时不同（{saved} → {current}），已按当前屏幕调整窗口位置。"
+    },
+    "report.windowless_suffix": {
+      "ko": " (실행 중이지만 창 없음)",
+      "en": " (running, no window)",
+      "ja": "（起動中だがウィンドウなし）",
+      "zh-Hans": "（运行中但没有窗口）"
+    },
+    "report.new_window_suffix": {
+      "ko": " (새 창)",
+      "en": " (new window)",
+      "ja": "（新しいウィンドウ）",
+      "zh-Hans": "（新窗口）"
+    },
+    "report.app_not_found": {
+      "ko": "{app} (앱을 찾을 수 없음)",
+      "en": "{app} (app not found)",
+      "ja": "{app}（アプリが見つかりません）",
+      "zh-Hans": "{app}（找不到应用）"
+    },
+    "report.mismatch_item": {
+      "ko": "{window}: 요청 {requested} → 실제 {actual}",
+      "en": "{window}: requested {requested} → actual {actual}",
+      "ja": "{window}: 要求 {requested} → 実際 {actual}",
+      "zh-Hans": "{window}：请求 {requested} → 实际 {actual}"
+    },
+    "report.raise_failed": {
+      "ko": "{count}개 창은 앞으로 올리지 못했습니다.",
+      "en": "{count} windows could not be brought to the front.",
+      "ja": "{count} 個のウィンドウを最前面にできませんでした。",
+      "zh-Hans": "{count} 个窗口无法置于最前。"
+    },
+    "report.automation_hint": {
+      "ko": "{app}의 숨은 탭까지 검색하려면 시스템 설정 › 개인정보 보호 및 보안 › 자동화에서 WindowLayouts가 {app}을(를) 제어하도록 허용하세요. 지금은 각 창의 활성 탭만 확인했습니다.",
+      "en": "To search all tabs of {app}, allow WindowLayouts to control {app} under System Settings › Privacy & Security › Automation. Only the active tab of each window was checked.",
+      "ja": "{app} のすべてのタブを検索するには、システム設定 › プライバシーとセキュリティ › オートメーションで WindowLayouts に {app} の制御を許可してください。今回は各ウィンドウのアクティブなタブのみ確認しました。",
+      "zh-Hans": "要搜索 {app} 的全部标签页，请在“系统设置 › 隐私与安全性 › 自动化”中允许 WindowLayouts 控制 {app}。本次仅检查了每个窗口的活动标签页。"
+    },
+    "report.new_window_failed": {
+      "ko": "{app}에서 {url} 을(를) 새 창으로 열지 못했습니다.",
+      "en": "{app} could not open {url} in a new window.",
+      "ja": "{app} で {url} を新しいウィンドウで開けませんでした。",
+      "zh-Hans": "{app} 无法在新窗口中打开 {url}。"
+    },
+    "report.new_window_timeout": {
+      "ko": "{app}에서 {url} 새 창이 열리기를 기다렸지만 나타나지 않았습니다.",
+      "en": "Waited for {app} to open a new window for {url}, but it never appeared.",
+      "ja": "{app} が {url} の新しいウィンドウを開くのを待ちましたが、表示されませんでした。",
+      "zh-Hans": "等待 {app} 为 {url} 打开新窗口，但窗口未出现。"
+    },
+    "report.opened_new_window": {
+      "ko": "{app}: {url} 을(를) 보여주는 창을 찾지 못해 새 창으로 열었습니다. ({reason})",
+      "en": "{app}: no window showing {url} was found, so it was opened in a new window. ({reason})",
+      "ja": "{app}: {url} を表示するウィンドウが見つからないため、新しいウィンドウで開きました。（{reason}）",
+      "zh-Hans": "{app}：未找到显示 {url} 的窗口，已在新窗口中打开。（{reason}）"
+    },
+    "report.reason_windows_tabs": {
+      "ko": "Windows에서는 뒤에 숨은 탭을 볼 수 없습니다",
+      "en": "background tabs cannot be inspected on Windows",
+      "ja": "Windows では背面のタブを確認できません",
+      "zh-Hans": "在 Windows 上无法查看后台标签页"
+    },
+    "report.reason_linux_tabs": {
+      "ko": "Linux에서는 탭 주소를 읽을 수 없습니다",
+      "en": "tab addresses cannot be read on Linux",
+      "ja": "Linux ではタブのアドレスを読み取れません",
+      "zh-Hans": "在 Linux 上无法读取标签页地址"
+    },
+    "report.error": {
+      "ko": "적용 중 오류: {error}",
+      "en": "Error while applying: {error}",
+      "ja": "適用中にエラー: {error}",
+      "zh-Hans": "应用时出错：{error}"
+    },
+    "ask.title": {
+      "ko": "실행 중이 아니거나 창이 없는 앱이 있습니다",
+      "en": "Some apps aren't running or have no window",
+      "ja": "起動していない、またはウィンドウのないアプリがあります",
+      "zh-Hans": "有些应用未运行或没有窗口"
+    },
+    "ask.message": {
+      "ko": "‘{name}’ 배치에 포함된 다음 앱을 실행하거나 새 창을 열어야 합니다.",
+      "en": "The following apps in “{name}” need to be launched or need a new window.",
+      "ja": "配置「{name}」に含まれる次のアプリを起動するか、新しいウィンドウを開く必要があります。",
+      "zh-Hans": "布局“{name}”中的以下应用需要启动或打开新窗口。"
+    },
+    "ask.launch": {
+      "ko": "실행/창 열고 배치",
+      "en": "Launch and Place",
+      "ja": "起動して配置",
+      "zh-Hans": "启动并排列"
+    },
+    "ask.skip": {
+      "ko": "지금 있는 창만 배치",
+      "en": "Place Existing Only",
+      "ja": "今あるウィンドウだけ配置",
+      "zh-Hans": "仅排列现有窗口"
+    },
+    "ask.remember": {
+      "ko": "이 배치에서는 다시 묻지 않기",
+      "en": "Don't ask again for this layout",
+      "ja": "この配置では今後確認しない",
+      "zh-Hans": "此布局不再询问"
+    },
+    "store.read_error": {
+      "ko": "layouts.json을 읽지 못했습니다: {error}",
+      "en": "Could not read layouts.json: {error}",
+      "ja": "layouts.json を読み込めませんでした: {error}",
+      "zh-Hans": "无法读取 layouts.json：{error}"
+    },
+    "store.save_error": {
+      "ko": "저장 실패: {error}",
+      "en": "Could not save: {error}",
+      "ja": "保存できませんでした: {error}",
+      "zh-Hans": "保存失败：{error}"
+    },
+    "log.start": {
+      "ko": "=== 적용 시작: '{name}' (정책 {policy}, 앞으로 올리기 {raise})",
+      "en": "=== Apply start: '{name}' (policy {policy}, raise {raise})",
+      "ja": "=== 適用開始: '{name}'（ポリシー {policy}、最前面 {raise}）",
+      "zh-Hans": "=== 开始应用：'{name}'（策略 {policy}，置前 {raise}）"
+    },
+    "log.end": {
+      "ko": "=== 적용 끝: {summary}",
+      "en": "=== Apply end: {summary}",
+      "ja": "=== 適用終了: {summary}",
+      "zh-Hans": "=== 应用结束：{summary}"
+    },
+    "log.monitors": {
+      "ko": "현재 모니터: {list}",
+      "en": "Current monitors: {list}",
+      "ja": "現在のモニター: {list}",
+      "zh-Hans": "当前显示器：{list}"
+    },
+    "log.main_suffix": {
+      "ko": " 주",
+      "en": " main",
+      "ja": " メイン",
+      "zh-Hans": " 主"
+    },
+    "log.no_match": {
+      "ko": "[{window}] 맞는 창 없음 (남은 창 {count}개)",
+      "en": "[{window}] no matching window ({count} left)",
+      "ja": "[{window}] 一致するウィンドウなし（残り {count}）",
+      "zh-Hans": "[{window}] 没有匹配的窗口（剩余 {count} 个）"
+    },
+    "log.assigned": {
+      "ko": "[{window}] 창 '{title}' 배정",
+      "en": "[{window}] assigned window '{title}'",
+      "ja": "[{window}] ウィンドウ '{title}' を割り当て",
+      "zh-Hans": "[{window}] 已分配窗口 '{title}'"
+    },
+    "log.place_start": {
+      "ko": "시작 {from} → 목표 {to}",
+      "en": "start {from} → target {to}",
+      "ja": "開始 {from} → 目標 {to}",
+      "zh-Hans": "起始 {from} → 目标 {to}"
+    },
+    "log.place_attempt": {
+      "ko": "시도 {attempt}: 결과 {result}",
+      "en": "attempt {attempt}: result {result}",
+      "ja": "試行 {attempt}: 結果 {result}",
+      "zh-Hans": "尝试 {attempt}：结果 {result}"
+    },
+    "log.fullscreen_skip": {
+      "ko": "전체 화면 창이라 건너뜀",
+      "en": "skipped: fullscreen window",
+      "ja": "フルスクリーンのためスキップ",
+      "zh-Hans": "全屏窗口，已跳过"
+    },
+    "log.url_not_found": {
+      "ko": "URL로 요청한 배치를 찾지 못함: {url}",
+      "en": "Layout requested by URL not found: {url}",
+      "ja": "URL で要求された配置が見つかりません: {url}",
+      "zh-Hans": "找不到 URL 请求的布局：{url}"
+    },
+    "log.cli_not_found": {
+      "ko": "명령줄로 요청한 배치를 찾지 못함: {name}",
+      "en": "Layout requested on the command line not found: {name}",
+      "ja": "コマンドラインで要求された配置が見つかりません: {name}",
+      "zh-Hans": "找不到命令行请求的布局：{name}"
+    },
+    "log.app_start": {
+      "ko": "앱 시작",
+      "en": "app started",
+      "ja": "アプリ起動",
+      "zh-Hans": "应用启动"
+    },
+    "log.app_quit": {
+      "ko": "앱 종료",
+      "en": "app quit",
+      "ja": "アプリ終了",
+      "zh-Hans": "应用退出"
+    },
+    "app.unknown": {
+      "ko": "알 수 없는 앱",
+      "en": "Unknown app",
+      "ja": "不明なアプリ",
+      "zh-Hans": "未知应用"
+    }
+  }
+}

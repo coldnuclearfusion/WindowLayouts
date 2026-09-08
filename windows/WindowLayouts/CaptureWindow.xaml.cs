@@ -23,6 +23,26 @@ public static class Prefs
         catch { return fallback; }
     }
 
+    public static string GetString(string name, string fallback)
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.OpenSubKey(Key);
+            return k?.GetValue(name) as string ?? fallback;
+        }
+        catch { return fallback; }
+    }
+
+    public static void SetString(string name, string value)
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.CreateSubKey(Key);
+            k?.SetValue(name, value, RegistryValueKind.String);
+        }
+        catch { }
+    }
+
     public static void SetBool(string name, bool value)
     {
         try
@@ -43,7 +63,7 @@ public partial class CaptureWindow : Window
         public WindowInfo Info { get; }
         public Item(WindowInfo info) { Info = info; }
         public bool Selected { get => _selected; set => Set(ref _selected, value); }
-        public string Title => string.IsNullOrEmpty(Info.Title) ? "(제목 없음)" : Info.Title;
+        public string Title => string.IsNullOrEmpty(Info.Title) ? Loc.T("capture.untitled_window") : Info.Title;
         public string Detail => (Info.Url != null ? Info.Url + "   ·   " : "") + Info.Frame.ShortDescription;
     }
 
@@ -81,11 +101,17 @@ public partial class CaptureWindow : Window
         InitializeComponent();
         _request = request;
 
-        Heading.Text = IsNewLayout ? "현재 창 배치 저장" : "현재 열린 창 추가";
-        SaveButton.Content = IsNewLayout ? "저장" : "추가";
+        Title = IsNewLayout ? Loc.T("capture.title_new") : Loc.T("capture.title_add");
+        Heading.Text = Title;
+        SaveButton.Content = IsNewLayout ? Loc.T("common.save") : Loc.T("common.add");
+        CancelButton.Content = Loc.T("common.cancel");
+        HintText.Text = Loc.T("capture.hint");
+        TitlesBox.Content = Loc.T("capture.save_titles");
+        UrlsBox.Content = Loc.T("capture.save_urls");
+        EmptyText.Text = Loc.T("capture.no_windows");
         NameBox.Visibility = IsNewLayout ? Visibility.Visible : Visibility.Collapsed;
-        NameBox.Text = $"배치 {LayoutStore.Shared.Layouts.Count + 1}";
-        ConfigText.Text = "모니터 구성: " + request.DisplayConfig.Name;
+        NameBox.Text = Loc.T("layout.default_name", ("n", LayoutStore.Shared.Layouts.Count + 1));
+        ConfigText.Text = Loc.T("capture.config", ("name", request.DisplayConfig.Name));
         TitlesBox.IsChecked = Prefs.GetBool("saveWindowTitles", true);
         UrlsBox.IsChecked = Prefs.GetBool("saveWindowURLs", true);
 
@@ -112,7 +138,7 @@ public partial class CaptureWindow : Window
 
     private void UpdateFooter()
     {
-        CountText.Text = $"{SelectedCount}개 창 선택됨";
+        CountText.Text = Loc.T("capture.selected_count", ("count", SelectedCount));
         SaveButton.IsEnabled = SelectedCount > 0 && (!IsNewLayout || NameBox.Text.Trim().Length > 0);
     }
 

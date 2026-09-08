@@ -37,7 +37,7 @@ struct MainWindow: View {
                 ForEach(store.groups(current: monitor.displayConfig)) { group in
                     Section {
                         if group.layouts.isEmpty {
-                            Text("저장된 배치가 없습니다")
+                            Text(L("sidebar.no_layouts"))
                                 .foregroundStyle(.secondary)
                         }
                         ForEach(group.layouts) { layout in
@@ -48,7 +48,7 @@ struct MainWindow: View {
                         }
                     } header: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(group.isCurrent ? "현재 모니터 구성" : "다른 모니터 구성")
+                            Text(group.isCurrent ? L("sidebar.current_config_header") : L("sidebar.other_config_header"))
                             Text(group.configName)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -57,7 +57,7 @@ struct MainWindow: View {
                     }
                 }
                 Section {
-                    Label("일반 설정", systemImage: "gearshape")
+                    Label(L("sidebar.general"), systemImage: "gearshape")
                         .tag(SidebarItem.general)
                 }
             }
@@ -67,14 +67,15 @@ struct MainWindow: View {
                     Button {
                         appState.captureRequest = CaptureRequest(windows: WindowCapture.currentWindows(), targetLayoutID: nil)
                     } label: {
-                        Label("현재 창 배치 저장", systemImage: "plus")
+                        Label(L("sidebar.save_button"), systemImage: "plus")
                     }
-                    .help("현재 열린 창들을 새 배치로 저장")
+                    .help(L("sidebar.save_tooltip"))
                 }
             }
         } detail: {
             detailView
         }
+        .navigationTitle(L("app.name"))
         .frame(minWidth: 900, minHeight: 520)
         .sheet(item: $appState.captureRequest) { request in
             CaptureSheet(request: request)
@@ -82,20 +83,20 @@ struct MainWindow: View {
                 .environment(appState)
         }
         .confirmationDialog(
-            "‘\(pendingDelete?.name ?? "")’ 배치를 삭제할까요?",
+            L("delete.title", ["name": pendingDelete?.name ?? ""]),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("삭제", role: .destructive) {
+            Button(L("delete.confirm"), role: .destructive) {
                 if let layout = pendingDelete {
                     if appState.selection == .layout(layout.id) { appState.selection = nil }
                     store.remove(id: layout.id)
                 }
                 pendingDelete = nil
             }
-            Button("취소", role: .cancel) { pendingDelete = nil }
+            Button(L("common.cancel"), role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("이 작업은 되돌릴 수 없습니다.")
+            Text(L("delete.message"))
         }
     }
 
@@ -103,14 +104,14 @@ struct MainWindow: View {
         Label(layout.name, systemImage: "macwindow.on.rectangle")
             .tag(SidebarItem.layout(layout.id))
             .contextMenu {
-                Button("적용") { Task { await LayoutApplier.shared.apply(layout) } }
-                Button("복제") {
+                Button(L("context.apply")) { Task { await LayoutApplier.shared.apply(layout) } }
+                Button(L("context.duplicate")) {
                     if let copy = store.duplicate(id: layout.id) {
                         appState.selection = .layout(copy.id)
                     }
                 }
                 Divider()
-                Button("삭제…", role: .destructive) { pendingDelete = layout }
+                Button(L("context.delete"), role: .destructive) { pendingDelete = layout }
             }
     }
 
@@ -132,9 +133,9 @@ struct MainWindow: View {
 
     private var placeholder: some View {
         ContentUnavailableView(
-            "배치를 선택하세요",
+            L("sidebar.placeholder_title"),
             systemImage: "macwindow.on.rectangle",
-            description: Text("왼쪽 목록에서 배치를 고르거나, + 버튼으로 현재 창 배치를 저장하세요.")
+            description: Text(L("sidebar.placeholder_body"))
         )
     }
 }

@@ -98,7 +98,7 @@ final class LayoutStore {
         guard let i = index(of: id) else { return nil }
         var copy = layouts[i]
         copy.id = UUID()
-        copy.name = layouts[i].name + " 복사본"
+        copy.name = layouts[i].name + L("layout.copy_suffix")
         copy.windows = copy.windows.map { entry in
             var e = entry
             e.id = UUID()
@@ -204,7 +204,7 @@ final class LayoutStore {
             lastWrittenData = data
             loadError = nil
         } catch {
-            loadError = "layouts.json을 읽지 못했습니다: \(error.localizedDescription)"
+            loadError = L("store.read_error", ["error": error.localizedDescription])
         }
     }
 
@@ -219,7 +219,7 @@ final class LayoutStore {
             try data.write(to: fileURL, options: .atomic)
             loadError = nil
         } catch {
-            loadError = "저장 실패: \(error.localizedDescription)"
+            loadError = L("store.save_error", ["error": error.localizedDescription])
         }
     }
 

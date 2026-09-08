@@ -24,11 +24,11 @@ public sealed class ApplyReport
         get
         {
             if (Error != null) return Error;
-            if (Cancelled) return $"‘{LayoutName}’ 적용을 취소했습니다.";
-            var s = $"‘{LayoutName}’ 적용: {Placed.Count}개 창 배치됨";
-            if (Unmatched.Count > 0) s += $", {Unmatched.Count}개 창 못 찾음";
-            if (Mismatched.Count > 0) s += $", {Mismatched.Count}개 크기/위치 다름";
-            if (Failed.Count > 0) s += $", {Failed.Count}개 실패";
+            if (Cancelled) return Loc.T("report.cancelled", ("name", LayoutName));
+            var s = Loc.T("report.headline", ("name", LayoutName), ("placed", Placed.Count));
+            if (Unmatched.Count > 0) s += Loc.T("report.unmatched_suffix", ("count", Unmatched.Count));
+            if (Mismatched.Count > 0) s += Loc.T("report.mismatched_suffix", ("count", Mismatched.Count));
+            if (Failed.Count > 0) s += Loc.T("report.failed_suffix", ("count", Failed.Count));
             return s;
         }
     }
@@ -38,11 +38,11 @@ public sealed class ApplyReport
         get
         {
             var l = new List<string>(Notes);
-            if (Launched.Count > 0) l.Add("실행함: " + string.Join(", ", Launched));
-            if (NotRunning.Count > 0) l.Add("실행하거나 창을 열지 않아 건너뜀: " + string.Join(", ", NotRunning));
-            if (Unmatched.Count > 0) l.Add("맞는 창을 못 찾음: " + string.Join(", ", Unmatched));
-            if (Failed.Count > 0) l.Add("위치 변경 실패: " + string.Join(", ", Failed));
-            if (Mismatched.Count > 0) l.Add("요청과 다르게 놓임 (앱이 거부하거나 조정함): " + string.Join(" · ", Mismatched));
+            if (Launched.Count > 0) l.Add(Loc.T("report.launched", ("list", string.Join(", ", Launched))));
+            if (NotRunning.Count > 0) l.Add(Loc.T("report.not_running", ("list", string.Join(", ", NotRunning))));
+            if (Unmatched.Count > 0) l.Add(Loc.T("report.unmatched", ("list", string.Join(", ", Unmatched))));
+            if (Failed.Count > 0) l.Add(Loc.T("report.failed", ("list", string.Join(", ", Failed))));
+            if (Mismatched.Count > 0) l.Add(Loc.T("report.mismatched", ("list", string.Join(" · ", Mismatched))));
             return l;
         }
     }
@@ -67,21 +67,21 @@ public sealed class LayoutApplier
         if (IsApplying) return;
         IsApplying = true;
         var report = new ApplyReport { LayoutId = layout.Id, LayoutName = layout.Name };
-        ApplyLog.Write($"=== 적용 시작: '{layout.Name}' (정책 {layout.LaunchPolicy}, 앞으로 올리기 {layout.RaiseWindows})");
+        ApplyLog.Write(Loc.T("log.start", ("name", layout.Name), ("policy", layout.LaunchPolicy.Key()), ("raise", layout.RaiseWindows)));
         try
         {
             await ApplyCore(layout, report);
         }
         catch (Exception ex)
         {
-            report.Error = "적용 중 오류: " + ex.Message;
-            ApplyLog.Write("오류: " + ex);
+            report.Error = Loc.T("report.error", ("error", ex.Message));
+            ApplyLog.Write("error: " + ex);
         }
         finally
         {
             LastReport = report;
             IsApplying = false;
-            ApplyLog.Write($"=== 적용 끝: {report.Headline} {string.Join(" | ", report.Lines)}");
+            ApplyLog.Write(Loc.T("log.end", ("summary", report.Headline + " " + string.Join(" | ", report.Lines))));
             ReportChanged?.Invoke();
         }
     }
@@ -91,10 +91,10 @@ public sealed class LayoutApplier
         var entries = layout.Windows.Where(w => w.Enabled).ToList();
         var appIds = layout.EnabledAppIds;
         var currentConfig = Displays.Current();
-        ApplyLog.Write("현재 모니터: " + string.Join(" / ",
-            currentConfig.Displays.Select(d => $"{d.Name} {d.Frame.ShortDescription}{(d.IsMain ? " 주" : "")}")));
+        ApplyLog.Write(Loc.T("log.monitors", ("list", string.Join(" / ",
+            currentConfig.Displays.Select(d => $"{d.Name} {d.Frame.ShortDescription}{(d.IsMain ? Loc.T("log.main_suffix") : "")}")))));
         if (layout.DisplayConfig != null && !layout.DisplayConfig.IsIdentical(currentConfig))
-            report.Notes.Add($"저장 당시 모니터 구성({layout.DisplayConfig.Name})과 지금({currentConfig.Name})이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.");
+            report.Notes.Add(Loc.T("report.config_differs", ("saved", layout.DisplayConfig.Name), ("current", currentConfig.Name)));
 
         var missing = appIds.Where(id => AppIdentity.RunningProcessIds(id).Count == 0).ToList();
         // 프로세스는 살아 있지만(트레이 상주 등) 보이는 창이 하나도 없는 앱
@@ -109,7 +109,7 @@ public sealed class LayoutApplier
         var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         bool allowNewWindows = layout.LaunchPolicy != LaunchPolicy.RunningOnly;
 
-        string Label(string id) => layout.AppName(id) + (windowless.Contains(id) ? " (실행 중이지만 창 없음)" : "");
+        string Label(string id) => layout.AppName(id) + (windowless.Contains(id) ? Loc.T("report.windowless_suffix") : "");
 
         if (needsOpen.Count > 0)
         {
@@ -141,12 +141,12 @@ public sealed class LayoutApplier
                     bool reopen = windowless.Contains(id);
                     if (AppIdentity.Launch(id))
                     {
-                        report.Launched.Add(layout.AppName(id) + (reopen ? " (새 창)" : ""));
+                        report.Launched.Add(layout.AppName(id) + (reopen ? Loc.T("report.new_window_suffix") : ""));
                         toWait[id] = entries.Count(e => e.BundleID == id);
                     }
                     else
                     {
-                        report.Failed.Add($"{layout.AppName(id)} (앱을 찾을 수 없음)");
+                        report.Failed.Add(Loc.T("report.app_not_found", ("app", layout.AppName(id))));
                         skipped.Add(id);
                     }
                 }
@@ -194,11 +194,11 @@ public sealed class LayoutApplier
                 if (window == null)
                 {
                     report.Unmatched.Add(entry.DisplayName);
-                    ApplyLog.Write($"[{entry.DisplayName}] 맞는 창 없음 (남은 창 {windows.Count}개)");
+                    ApplyLog.Write(Loc.T("log.no_match", ("window", entry.DisplayName), ("count", windows.Count)));
                     continue;
                 }
                 var frame = TargetFrame(entry, layout.DisplayConfig, currentConfig);
-                ApplyLog.Write($"[{entry.DisplayName}] 창 '{window.Title}' 배정");
+                ApplyLog.Write(Loc.T("log.assigned", ("window", entry.DisplayName), ("title", window.Title)));
                 var outcome = await Place(window.Hwnd, frame, s => ApplyLog.Write($"[{entry.DisplayName}] {s}"));
                 switch (outcome.Kind)
                 {
@@ -208,7 +208,7 @@ public sealed class LayoutApplier
                         break;
                     case PlaceKind.Mismatch:
                         report.Placed.Add(entry.DisplayName);
-                        report.Mismatched.Add($"{entry.DisplayName}: 요청 {frame.ShortDescription} → 실제 {outcome.Actual.ShortDescription}");
+                        report.Mismatched.Add(Loc.T("report.mismatch_item", ("window", entry.DisplayName), ("requested", frame.ShortDescription), ("actual", outcome.Actual.ShortDescription)));
                         placed.Add((entry, window));
                         break;
                     default:
@@ -221,7 +221,7 @@ public sealed class LayoutApplier
         if (layout.RaiseWindows && placed.Count > 0)
         {
             int failures = await Raise(placed, layout.Windows.Select(w => w.Id).ToList());
-            if (failures > 0) report.Notes.Add($"{failures}개 창은 앞으로 올리지 못했습니다.");
+            if (failures > 0) report.Notes.Add(Loc.T("report.raise_failed", ("count", failures)));
         }
 
         LayoutStore.Shared.LastAppliedId = layout.Id;
@@ -261,7 +261,7 @@ public sealed class LayoutApplier
             Native.ShowWindow(hwnd, Native.SW_RESTORE);
             await Task.Delay(150);
         }
-        log?.Invoke($"시작 {Native.GetExtendedFrame(hwnd).ShortDescription} → 목표 {target.ShortDescription}");
+        log?.Invoke(Loc.T("log.place_start", ("from", Native.GetExtendedFrame(hwnd).ShortDescription), ("to", target.ShortDescription)));
 
         bool any = false;
         for (int attempt = 1; attempt <= 3; attempt++)
@@ -278,7 +278,7 @@ public sealed class LayoutApplier
             await Task.Delay(attempt == 1 ? 80 : 150);
             var now = Native.GetExtendedFrame(hwnd);
             bool match = now.ApproximatelyEquals(target, 2);
-            log?.Invoke($"시도 {attempt}: 결과 {now.ShortDescription}{(match ? " ✓" : "")}");
+            log?.Invoke(Loc.T("log.place_attempt", ("attempt", attempt), ("result", now.ShortDescription)) + (match ? " ✓" : ""));
             if (match) return new PlaceOutcome(PlaceKind.Placed, now);
         }
         if (!any) return new PlaceOutcome(PlaceKind.Failed, default);
@@ -344,7 +344,7 @@ public sealed class LayoutApplier
 
         var before = WindowCapture.WindowsOf(appId).Select(w => w.Hwnd).ToHashSet();
         if (!BrowserSupport.OpenInNewWindow(appId, url))
-            return (null, $"{entry.AppName}에서 {url} 을(를) 새 창으로 열지 못했습니다.");
+            return (null, Loc.T("report.new_window_failed", ("app", entry.AppName), ("url", url)));
         var deadline = DateTime.Now.AddSeconds(10);
         while (DateTime.Now < deadline)
         {
@@ -353,10 +353,10 @@ public sealed class LayoutApplier
             if (fresh != null)
             {
                 await Task.Delay(300);
-                return (fresh, $"{entry.AppName}: {url} 을(를) 보여주는 창이 없어 새 창으로 열었습니다 (Windows에서는 뒤에 숨은 탭을 볼 수 없습니다).");
+                return (fresh, Loc.T("report.opened_new_window", ("app", entry.AppName), ("url", url), ("reason", Loc.T("report.reason_windows_tabs"))));
             }
         }
-        return (null, $"{entry.AppName}에서 {url} 새 창이 열리기를 기다렸지만 나타나지 않았습니다.");
+        return (null, Loc.T("report.new_window_timeout", ("app", entry.AppName), ("url", url)));
     }
 
     // ---- 앞으로 올리기

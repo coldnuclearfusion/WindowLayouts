@@ -11,6 +11,7 @@ gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
 from . import paths  # noqa: E402
+from .l10n import t  # noqa: E402
 from .models import DisplayConfig, WindowLayout, dump_file, load_file  # noqa: E402
 
 
@@ -97,7 +98,7 @@ class LayoutStore:
             if l.id == lid:
                 copy = WindowLayout.from_json(json.loads(json.dumps(l.to_json())))
                 copy.id = WindowLayout().id
-                copy.name = l.name + " 복사본"
+                copy.name = l.name + t("layout.copy_suffix")
                 for w in copy.windows:
                     w.id = WindowLayout().id
                 self.layouts.insert(i + 1, copy)
@@ -164,7 +165,7 @@ class LayoutStore:
             self._last_written = text
             self.load_error = None
         except Exception as e:
-            self.load_error = f"layouts.json을 읽지 못했습니다: {e}"
+            self.load_error = t("store.read_error", error=str(e))
         self._notify()
 
     def save(self) -> None:
@@ -180,7 +181,7 @@ class LayoutStore:
             os.replace(tmp, paths.LAYOUTS_FILE)
             self.load_error = None
         except OSError as e:
-            self.load_error = f"저장 실패: {e}"
+            self.load_error = t("store.save_error", error=str(e))
         self._notify()
 
     def schedule_save(self) -> None:
@@ -203,29 +204,3 @@ class LayoutStore:
         self._reload_source = None
         self._load(force=False)
         return False
-
-
-class Prefs:
-    """작은 설정값 (저장 시 제목/주소 포함 여부 등)"""
-
-    @staticmethod
-    def _read() -> dict:
-        try:
-            with open(paths.PREFS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-
-    @staticmethod
-    def get(key: str, default):
-        return Prefs._read().get(key, default)
-
-    @staticmethod
-    def set(key: str, value) -> None:
-        data = Prefs._read()
-        data[key] = value
-        try:
-            with open(paths.PREFS_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except OSError:
-            pass

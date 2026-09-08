@@ -24,7 +24,7 @@ public static class StartupRegistration
         try
         {
             using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-            if (key == null) return "레지스트리를 열 수 없습니다.";
+            if (key == null) return "cannot open registry key";
             if (on)
             {
                 var exe = Environment.ProcessPath ?? "";

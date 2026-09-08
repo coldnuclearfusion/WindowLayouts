@@ -8,6 +8,7 @@ from typing import Callable, Optional
 from gi.repository import GLib
 
 from . import applylog, apps, browser, capture, matcher
+from .l10n import t
 from .models import DisplayConfig, Frame, WindowEntry, WindowLayout
 from .x11 import X11
 
@@ -31,29 +32,29 @@ class ApplyReport:
         if self.error:
             return self.error
         if self.cancelled:
-            return f"‘{self.layout_name}’ 적용을 취소했습니다."
-        s = f"‘{self.layout_name}’ 적용: {len(self.placed)}개 창 배치됨"
+            return t("report.cancelled", name=self.layout_name)
+        s = t("report.headline", name=self.layout_name, placed=len(self.placed))
         if self.unmatched:
-            s += f", {len(self.unmatched)}개 창 못 찾음"
+            s += t("report.unmatched_suffix", count=len(self.unmatched))
         if self.mismatched:
-            s += f", {len(self.mismatched)}개 크기/위치 다름"
+            s += t("report.mismatched_suffix", count=len(self.mismatched))
         if self.failed:
-            s += f", {len(self.failed)}개 실패"
+            s += t("report.failed_suffix", count=len(self.failed))
         return s
 
     @property
     def lines(self) -> list:
         l = list(self.notes)
         if self.launched:
-            l.append("실행함: " + ", ".join(self.launched))
+            l.append(t("report.launched", list=", ".join(self.launched)))
         if self.not_running:
-            l.append("실행하거나 창을 열지 않아 건너뜀: " + ", ".join(self.not_running))
+            l.append(t("report.not_running", list=", ".join(self.not_running)))
         if self.unmatched:
-            l.append("맞는 창을 못 찾음: " + ", ".join(self.unmatched))
+            l.append(t("report.unmatched", list=", ".join(self.unmatched)))
         if self.failed:
-            l.append("위치 변경 실패: " + ", ".join(self.failed))
+            l.append(t("report.failed", list=", ".join(self.failed)))
         if self.mismatched:
-            l.append("요청과 다르게 놓임 (창 관리자나 앱이 조정함): " + " · ".join(self.mismatched))
+            l.append(t("report.mismatched", list=" · ".join(self.mismatched)))
         return l
 
 
@@ -99,20 +100,20 @@ class Applier:
 
     def _run(self, layout: WindowLayout) -> None:
         report = ApplyReport(layout)
-        applylog.write(f"=== 적용 시작: '{layout.name}' (정책 {layout.launch_policy}, 앞으로 올리기 {layout.raise_windows})")
+        applylog.write(t("log.start", name=layout.name, policy=layout.launch_policy).replace("{raise}", str(layout.raise_windows)))
         x = None
         try:
             x = X11()
             self._apply(x, layout, report)
         except Exception as e:   # noqa: BLE001
-            report.error = f"적용 중 오류: {e}"
-            applylog.write(f"오류: {e!r}")
+            report.error = t("report.error", error=str(e))
+            applylog.write(f"error: {e!r}")
         finally:
             if x is not None:
                 x.close()
             self.last_report = report
             self.is_applying = False
-            applylog.write(f"=== 적용 끝: {report.headline} {' | '.join(report.lines)}")
+            applylog.write(t("log.end", summary=report.headline + " " + " | ".join(report.lines)))
             GLib.idle_add(self._notify)
 
     def _notify(self) -> bool:
@@ -127,9 +128,9 @@ class Applier:
         entries = [w for w in layout.windows if w.enabled]
         app_ids = layout.enabled_app_ids
         current = x.monitors()
-        applylog.write("현재 모니터: " + " / ".join(f"{d.name} {d.frame.short()}{' 주' if d.is_main else ''}" for d in current.displays))
+        applylog.write(t("log.monitors", list=" / ".join(f"{d.name} {d.frame.short()}{t('log.main_suffix') if d.is_main else ''}" for d in current.displays)))
         if layout.display_config is not None and not layout.display_config.is_identical(current):
-            report.notes.append(f"저장 당시 모니터 구성({layout.display_config.name})과 지금({current.name})이 달라 창 위치를 현재 화면에 맞춰 옮겼습니다.")
+            report.notes.append(t("report.config_differs", saved=layout.display_config.name, current=current.name))
 
         missing = [a for a in app_ids if not apps.running_pids(a)]
 
@@ -147,7 +148,7 @@ class Applier:
         allow_new_windows = layout.launch_policy != "runningOnly"
 
         def label(a: str) -> str:
-            return layout.app_name(a) + (" (실행 중이지만 창 없음)" if a in windowless else "")
+            return layout.app_name(a) + (t("report.windowless_suffix") if a in windowless else "")
 
         if needs_open:
             policy = layout.launch_policy
@@ -167,10 +168,10 @@ class Applier:
                 for a in needs_open:
                     reopen = a in windowless
                     if apps.launch(a):
-                        report.launched.append(layout.app_name(a) + (" (새 창)" if reopen else ""))
+                        report.launched.append(layout.app_name(a) + (t("report.new_window_suffix") if reopen else ""))
                         to_wait[a] = sum(1 for e in entries if e.bundle_id == a)
                     else:
-                        report.failed.append(f"{layout.app_name(a)} (앱을 찾을 수 없음)")
+                        report.failed.append(t("report.app_not_found", app=layout.app_name(a)))
                         skipped.add(a)
                 self._wait_for_windows(x, to_wait)
             else:
@@ -201,10 +202,10 @@ class Applier:
             for entry, win in matches:
                 if win is None:
                     report.unmatched.append(entry.display_name)
-                    applylog.write(f"[{entry.display_name}] 맞는 창 없음 (남은 창 {len(windows)}개)")
+                    applylog.write(t("log.no_match", window=entry.display_name, count=len(windows)))
                     continue
                 frame = target_frame(entry, layout.display_config, current)
-                applylog.write(f"[{entry.display_name}] 창 '{win.title}' 배정")
+                applylog.write(t("log.assigned", window=entry.display_name, title=win.title))
                 kind, actual = x.place(win.wid, frame, lambda s, e=entry: applylog.write(f"[{e.display_name}] {s}"))
                 if kind == "failed":
                     report.failed.append(entry.display_name)
@@ -212,7 +213,7 @@ class Applier:
                 report.placed.append(entry.display_name)
                 placed.append((entry, win))
                 if kind == "mismatch" and actual is not None:
-                    report.mismatched.append(f"{entry.display_name}: 요청 {frame.short()} → 실제 {actual.short()}")
+                    report.mismatched.append(t("report.mismatch_item", window=entry.display_name, requested=frame.short(), actual=actual.short()))
 
         if layout.raise_windows and placed:
             self._raise(x, placed, [w.id for w in layout.windows])
@@ -279,15 +280,15 @@ class Applier:
             return None, None
         before = {w.wid for w in capture.windows_of(x, app_id)}
         if not browser.open_in_new_window(app_id, url):
-            return None, f"{entry.app_name}에서 {url} 을(를) 새 창으로 열지 못했습니다."
+            return None, t("report.new_window_failed", app=entry.app_name, url=url)
         deadline = time.time() + 10
         while time.time() < deadline:
             time.sleep(0.3)
             fresh = next((w for w in capture.windows_of(x, app_id) if w.wid not in before), None)
             if fresh is not None:
                 time.sleep(0.3)
-                return fresh, f"{entry.app_name}: {url} 을(를) 보여주는 창을 제목으로 찾지 못해 새 창으로 열었습니다 (Linux에서는 탭 주소를 읽을 수 없습니다)."
-        return None, f"{entry.app_name}에서 {url} 새 창이 열리기를 기다렸지만 나타나지 않았습니다."
+                return fresh, t("report.opened_new_window", app=entry.app_name, url=url, reason=t("report.reason_linux_tabs"))
+        return None, t("report.new_window_timeout", app=entry.app_name, url=url)
 
     # ---- 앞으로 올리기
 

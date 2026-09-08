@@ -9,8 +9,9 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango  # noqa: E402
 
-from . import applylog, paths  # noqa: E402
-from .models import MATCH_LABELS, POLICY_LABELS  # noqa: E402
+from . import applylog, l10n, paths  # noqa: E402
+from .l10n import t  # noqa: E402
+from .models import MATCH_KEYS, POLICY_KEYS, match_label, policy_label  # noqa: E402
 
 # 사이드바 열: text, sub, kind(header|empty|layout|general), layout_id, group_id, weight
 S_TEXT, S_SUB, S_KIND, S_LAYOUT, S_GROUP, S_WEIGHT = range(6)
@@ -33,7 +34,7 @@ def launcher_command(extra: str = "") -> str:
 
 class MainWindow(Gtk.Window):
     def __init__(self, app):
-        super().__init__(title="창 배치")
+        super().__init__(title=t("app.name"))
         self.app = app
         self.store = app.store
         self.current = None
@@ -49,12 +50,12 @@ class MainWindow(Gtk.Window):
         side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         top = Gtk.Box(spacing=6)
         top.set_border_width(8)
-        title = Gtk.Label(label="창 배치")
+        title = Gtk.Label()
         title.set_xalign(0)
-        title.set_markup("<b>창 배치</b>")
+        title.set_markup("<b>" + _escape(t("app.name")) + "</b>")
         top.pack_start(title, True, True, 0)
-        add_btn = Gtk.Button(label="＋ 저장")
-        add_btn.set_tooltip_text("현재 열린 창들을 새 배치로 저장")
+        add_btn = Gtk.Button(label="＋ " + t("common.save"))
+        add_btn.set_tooltip_text(t("sidebar.save_tooltip"))
         add_btn.connect("clicked", lambda _b: self.app.capture_new())
         top.pack_end(add_btn, False, False, 0)
         side.pack_start(top, False, False, 0)
@@ -81,7 +82,7 @@ class MainWindow(Gtk.Window):
         self.right = Gtk.Stack()
         paned.pack2(self.right, True, False)
 
-        self.placeholder = Gtk.Label(label="배치를 선택하세요.\n왼쪽 목록에서 배치를 고르거나, ＋ 저장 버튼으로 현재 창 배치를 저장하세요.")
+        self.placeholder = Gtk.Label(label=t("sidebar.placeholder_title") + "\n" + t("sidebar.placeholder_body"))
         self.placeholder.set_justify(Gtk.Justification.CENTER)
         self.placeholder.get_style_context().add_class("dim-label")
         self.right.add_named(self.placeholder, "placeholder")
@@ -117,14 +118,14 @@ class MainWindow(Gtk.Window):
         general = self.right.get_visible_child_name() == "general"
         self.side_model.clear()
         for g in self.store.groups(self.app.current_display_config()):
-            head = ("현재 모니터 구성" if g.is_current else "다른 모니터 구성") + ": " + g.config_name
+            head = t("sidebar.current_config_header" if g.is_current else "sidebar.other_config_header") + ": " + g.config_name
             self.side_model.append([head, "", "header", "", g.id, Pango.Weight.BOLD])
             if not g.layouts:
-                self.side_model.append(["    저장된 배치가 없습니다", "", "empty", "", g.id, Pango.Weight.NORMAL])
+                self.side_model.append(["    " + t("sidebar.no_layouts"), "", "empty", "", g.id, Pango.Weight.NORMAL])
             for l in g.layouts:
                 self.side_model.append(["    " + l.name, "", "layout", l.id, g.id, Pango.Weight.NORMAL])
         self.side_model.append(["", "", "header", "", "", Pango.Weight.NORMAL])
-        self.side_model.append(["⚙  일반 설정", "", "general", "", "", Pango.Weight.NORMAL])
+        self.side_model.append(["⚙  " + t("sidebar.general"), "", "general", "", "", Pango.Weight.NORMAL])
         self._rebuilding = False
         sel = self.sidebar.get_selection()
         for row in self.side_model:
@@ -185,12 +186,12 @@ class MainWindow(Gtk.Window):
             mi.connect("activate", lambda _i: cb())
             menu.append(mi)
 
-        item("적용", lambda: self.app.apply_layout(layout))
-        item("복제", lambda: self._duplicate(layout))
-        item("위로", lambda: self.store.move_layout(layout.id, -1, group_ids))
-        item("아래로", lambda: self.store.move_layout(layout.id, +1, group_ids))
+        item(t("context.apply"), lambda: self.app.apply_layout(layout))
+        item(t("context.duplicate"), lambda: self._duplicate(layout))
+        item(t("context.move_up"), lambda: self.store.move_layout(layout.id, -1, group_ids))
+        item(t("context.move_down"), lambda: self.store.move_layout(layout.id, +1, group_ids))
         menu.append(Gtk.SeparatorMenuItem())
-        item("삭제…", lambda: self._delete(layout))
+        item(t("context.delete"), lambda: self._delete(layout))
         menu.show_all()
         menu.popup_at_pointer(event)
         return True
@@ -202,7 +203,7 @@ class MainWindow(Gtk.Window):
 
     def _delete(self, layout) -> None:
         dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
-                                buttons=Gtk.ButtonsType.YES_NO, text=f"‘{layout.name}’ 배치를 삭제할까요? 되돌릴 수 없습니다.")
+                                buttons=Gtk.ButtonsType.YES_NO, text=t("delete.title", name=layout.name) + "\n" + t("delete.message"))
         r = dlg.run()
         dlg.destroy()
         if r != Gtk.ResponseType.YES:
@@ -228,22 +229,22 @@ class MainWindow(Gtk.Window):
 
         row = Gtk.Box(spacing=12)
         self.name_entry = Gtk.Entry()
-        self.name_entry.set_placeholder_text("배치 이름")
+        self.name_entry.set_placeholder_text(t("detail.name_placeholder"))
         self.name_entry.connect("changed", self._on_name_changed)
         row.pack_start(self.name_entry, True, True, 0)
-        self.apply_button = Gtk.Button(label="▶  지금 적용")
+        self.apply_button = Gtk.Button(label="▶  " + t("detail.apply_now"))
         self.apply_button.connect("clicked", lambda _b: self.current and self.app.apply_layout(self.current))
         row.pack_end(self.apply_button, False, False, 0)
         box.pack_start(row, False, False, 0)
 
         row = Gtk.Box(spacing=8)
-        row.pack_start(Gtk.Label(label="실행 중이 아니거나 창이 없는 앱이 있을 때:"), False, False, 0)
+        row.pack_start(Gtk.Label(label=t("detail.policy_label")), False, False, 0)
         self.policy_combo = Gtk.ComboBoxText()
-        for key, label in POLICY_LABELS.items():
-            self.policy_combo.append(key, label)
+        for key in POLICY_KEYS:
+            self.policy_combo.append(key, policy_label(key))
         self.policy_combo.connect("changed", self._on_policy_changed)
         row.pack_start(self.policy_combo, False, False, 0)
-        self.raise_check = Gtk.CheckButton(label="적용할 때 이 창들을 다른 창들 위로 올리기 (표의 위 항목이 가장 앞)")
+        self.raise_check = Gtk.CheckButton(label=t("detail.raise"))
         self.raise_check.connect("toggled", self._on_raise_toggled)
         row.pack_start(self.raise_check, False, False, 16)
         box.pack_start(row, False, False, 0)
@@ -253,12 +254,12 @@ class MainWindow(Gtk.Window):
         self.display_label.set_xalign(0)
         self.display_label.set_line_wrap(True)
         row.pack_start(self.display_label, True, True, 0)
-        change = Gtk.MenuButton(label="변경")
+        change = Gtk.MenuButton(label=t("common.change"))
         menu = Gtk.Menu()
-        mi = Gtk.MenuItem(label="현재 모니터 구성으로 지정")
+        mi = Gtk.MenuItem(label=t("display.set_current"))
         mi.connect("activate", lambda _i: self._set_display_config(self.app.current_display_config()))
         menu.append(mi)
-        mi = Gtk.MenuItem(label="구성 무관으로 지정")
+        mi = Gtk.MenuItem(label=t("display.set_any"))
         mi.connect("activate", lambda _i: self._set_display_config(None))
         menu.append(mi)
         menu.show_all()
@@ -273,17 +274,17 @@ class MainWindow(Gtk.Window):
         toggle = Gtk.CellRendererToggle()
         toggle.connect("toggled", self._on_enabled_toggled)
         self.table.append_column(Gtk.TreeViewColumn("", toggle, active=C_ENABLED))
-        self.table.append_column(Gtk.TreeViewColumn("앱", Gtk.CellRendererText(), text=C_APP))
-        self._text_column("창 제목 (찾을 때 사용)", C_TITLE, expand=True)
-        self._text_column("페이지 주소 (브라우저)", C_URL, expand=True)
+        self.table.append_column(Gtk.TreeViewColumn(t("column.app"), Gtk.CellRendererText(), text=C_APP))
+        self._text_column(t("column.title"), C_TITLE, expand=True)
+        self._text_column(t("column.url"), C_URL, expand=True)
         combo_model = Gtk.ListStore(str)
-        for label in MATCH_LABELS.values():
-            combo_model.append([label])
+        for key in MATCH_KEYS:
+            combo_model.append([match_label(key)])
         combo = Gtk.CellRendererCombo(model=combo_model, text_column=0, has_entry=False, editable=True)
         combo.connect("edited", self._on_match_edited)
-        self.table.append_column(Gtk.TreeViewColumn("찾기", combo, text=C_MATCH))
-        self.table.append_column(Gtk.TreeViewColumn("모니터", Gtk.CellRendererText(), text=C_MONITOR))
-        for title, col in (("X", C_X), ("Y", C_Y), ("너비", C_W), ("높이", C_H)):
+        self.table.append_column(Gtk.TreeViewColumn(t("column.match"), combo, text=C_MATCH))
+        self.table.append_column(Gtk.TreeViewColumn(t("column.monitor"), Gtk.CellRendererText(), text=C_MONITOR))
+        for title, col in ((t("column.x"), C_X), (t("column.y"), C_Y), (t("column.width"), C_W), (t("column.height"), C_H)):
             self._text_column(title, col)
         scroller = Gtk.ScrolledWindow()
         scroller.set_shadow_type(Gtk.ShadowType.IN)
@@ -292,11 +293,11 @@ class MainWindow(Gtk.Window):
 
         row = Gtk.Box(spacing=8)
         for label, cb, tip in (
-            ("＋ 현재 열린 창 추가…", self._add_windows, None),
-            ("↻ 현재 위치로 갱신", self._refresh_frames, "저장된 창들을 지금 열린 창에서 찾아 위치와 크기를 다시 읽습니다"),
-            ("선택 삭제", self._delete_rows, None),
-            ("▲", lambda: self._move_selected(-1), "선택한 창을 한 칸 앞으로"),
-            ("▼", lambda: self._move_selected(+1), "선택한 창을 한 칸 뒤로"),
+            ("＋ " + t("detail.add_windows"), self._add_windows, None),
+            ("↻ " + t("detail.refresh"), self._refresh_frames, t("detail.refresh_help")),
+            (t("detail.delete_selected"), self._delete_rows, None),
+            ("▲", lambda: self._move_selected(-1), t("detail.move_up_help")),
+            ("▼", lambda: self._move_selected(+1), t("detail.move_down_help")),
         ):
             b = Gtk.Button(label=label)
             b.connect("clicked", lambda _b, f=cb: f())
@@ -375,26 +376,26 @@ class MainWindow(Gtk.Window):
         cfg = self.current.display_config
         for w in self.current.windows:
             mon = cfg.display_with_id(w.display_id) if cfg else None
-            self.table_model.append([w.enabled, w.app_name, w.title, w.url or "", MATCH_LABELS.get(w.title_match, "자동"),
+            self.table_model.append([w.enabled, w.app_name, w.title, w.url or "", match_label(w.title_match),
                                      mon.name if mon else "–", str(int(w.x)), str(int(w.y)), str(int(w.width)),
                                      str(int(w.height)), w.id])
-        self.count_label.set_text(f"{len(self.current.windows)}개 창 · 좌표는 루트 화면 왼쪽 위가 (0, 0), 픽셀")
+        self.count_label.set_text(t("detail.count", count=len(self.current.windows)))
 
     def _refresh_display_row(self) -> None:
         if self.current is None:
             return
         saved = self.current.display_config
         if saved is None:
-            self.display_label.set_text("모니터 구성: 무관 (모든 구성에서 표시, 좌표 그대로 적용)")
+            self.display_label.set_text(t("display.any"))
             return
         cur = self.app.current_display_config()
         if saved.is_identical(cur):
-            status = "현재와 같음"
+            status = t("display.same")
         elif saved.has_same_displays(cur):
-            status = "같은 모니터지만 배열이 달라, 적용할 때 위치를 맞춥니다"
+            status = t("display.rearranged")
         else:
-            status = "현재 구성과 달라, 적용할 때 창이 있던 모니터를 찾아 위치를 맞춥니다"
-        self.display_label.set_text(f"모니터 구성: {saved.name}   ·   {status}")
+            status = t("display.different")
+        self.display_label.set_text(t("display.config", name=saved.name) + "   ·   " + status)
 
     def _show_report(self) -> None:
         report = self.app.applier.last_report
@@ -451,7 +452,7 @@ class MainWindow(Gtk.Window):
         e = self._entry(path)
         if e is None:
             return
-        key = next((k for k, v in MATCH_LABELS.items() if v == text), None)
+        key = next((k for k in MATCH_KEYS if match_label(k) == text), None)
         if key:
             e.title_match = key
             self.table_model[path][C_MATCH] = text
@@ -497,7 +498,7 @@ class MainWindow(Gtk.Window):
         self.store.save()
         self._refresh_display_row()
         self._refresh_table()
-        self.refresh_label.set_text(f"{n}개 창의 위치를 현재 상태로 갱신하고, 모니터 구성을 현재 것으로 바꿨습니다.")
+        self.refresh_label.set_text(t("detail.refreshed", count=n))
 
     def _delete_rows(self) -> None:
         if self.current is None:
@@ -538,50 +539,75 @@ class MainWindow(Gtk.Window):
             l.get_style_context().add_class("dim-label")
             box.pack_start(l, False, False, 0)
 
-        heading("시작")
-        self.autostart_check = Gtk.CheckButton(label="로그인할 때 자동으로 실행")
+        heading(t("general.language"))
+        self.language_combo = Gtk.ComboBoxText()
+        self.language_combo.append(l10n.SYSTEM_OPTION, t("general.language_system"))
+        for code, name in l10n.languages():
+            self.language_combo.append(code, name)
+        self.language_combo.connect("changed", self._on_language_changed)
+        box.pack_start(self.language_combo, False, False, 0)
+        note(t("general.language_note"))
+
+        heading(t("general.startup"))
+        self.autostart_check = Gtk.CheckButton(label=t("general.launch_at_login"))
         self.autostart_check.connect("toggled", self._on_autostart_toggled)
         box.pack_start(self.autostart_check, False, False, 0)
         self.autostart_error = Gtk.Label()
         self.autostart_error.set_xalign(0)
         box.pack_start(self.autostart_error, False, False, 0)
 
-        heading("배치 데이터")
+        heading(t("general.data"))
         self.file_label = Gtk.Label(label=paths.LAYOUTS_FILE)
         self.file_label.set_xalign(0)
         self.file_label.set_selectable(True)
         box.pack_start(self.file_label, False, False, 0)
         row = Gtk.Box(spacing=8)
-        for label, cb in (("파일 열기", lambda: _open(paths.LAYOUTS_FILE)),
-                          ("폴더 열기", lambda: _open(paths.CONFIG_DIR)),
-                          ("다시 읽기", self.store.reload),
-                          ("적용 로그 열기", lambda: _open(paths.LOG_FILE, create=True))):
+        for label, cb in ((t("general.open_file"), lambda: _open(paths.LAYOUTS_FILE)),
+                          (t("general.open_folder"), lambda: _open(paths.CONFIG_DIR)),
+                          (t("general.reload"), self.store.reload),
+                          (t("general.open_log"), lambda: _open(paths.LOG_FILE, create=True))):
             b = Gtk.Button(label=label)
             b.connect("clicked", lambda _b, f=cb: f())
             row.pack_start(b, False, False, 0)
         box.pack_start(row, False, False, 0)
-        note("JSON 파일을 직접 편집해 저장하면 앱이 자동으로 다시 읽습니다. 창 항목의 x, y, width, height, title, url, titleMatch(auto/title/order), enabled 를 고칠 수 있습니다.")
+        note(t("general.json_hint"))
         self.load_error_label = Gtk.Label()
         self.load_error_label.set_xalign(0)
         box.pack_start(self.load_error_label, False, False, 0)
-        note("명령줄이나 단축키에서 적용하려면:  windowlayouts --apply \"배치이름\"")
+        note(t("general.cli_hint", command='windowlayouts --apply "NAME"'))
 
-        heading("모니터")
+        heading(t("general.monitors"))
         self.monitors_label = Gtk.Label()
         self.monitors_label.set_xalign(0)
         box.pack_start(self.monitors_label, False, False, 0)
-        note("배치는 저장 당시 모니터 구성과 함께 기록됩니다. 메뉴와 목록에서 현재 구성에 맞는 배치가 먼저 나오고, 다른 구성의 배치를 적용하면 창이 있던 모니터를 찾아 위치를 맞춥니다. Wayland 세션에서는 다른 앱의 창을 옮길 수 없어 X11 세션이 필요합니다.")
+        note(t("general.monitors_note") + " " + t("linux.wayland_note"))
         return box
+
+    def show_general(self) -> None:
+        """일반 설정 페이지 선택 (언어 변경 뒤 창을 다시 만들 때 사용)"""
+        sel = self.sidebar.get_selection()
+        for row in self.side_model:
+            if row[S_KIND] == "general":
+                sel.select_iter(row.iter)
+                return
+
+    def _on_language_changed(self, combo) -> None:
+        if getattr(self, "_loading", False):
+            return
+        code = combo.get_active_id()
+        if code and code != l10n.setting():
+            l10n.set_setting(code)   # App이 이 창을 새 언어로 다시 만든다
 
     def _refresh_general(self) -> None:
         self._loading = True
         self.autostart_check.set_active(os.path.exists(AUTOSTART_FILE))
+        self.language_combo.set_active_id(l10n.setting())
         self._loading = False
         self.autostart_error.set_text("")
         self.load_error_label.set_text(self.store.load_error or "")
         cfg = self.app.current_display_config()
-        self.monitors_label.set_text("현재 구성: " + cfg.name + "\n" + "\n".join(
-            f"{d.name}{' (주 모니터)' if d.is_main else ''} · {d.frame.short()}" for d in cfg.displays))
+        self.monitors_label.set_text(t("general.current_config") + ": " + cfg.name + "\n" + "\n".join(
+            f"{d.name}{t('display.main_suffix') if d.is_main else ''} · {d.frame.short()}" for d in cfg.displays))
 
     def _on_autostart_toggled(self, check) -> None:
         if getattr(self, "_loading", False):
@@ -590,14 +616,14 @@ class MainWindow(Gtk.Window):
             if check.get_active():
                 os.makedirs(os.path.dirname(AUTOSTART_FILE), exist_ok=True)
                 with open(AUTOSTART_FILE, "w", encoding="utf-8") as f:
-                    f.write("[Desktop Entry]\nType=Application\nName=WindowLayouts\nComment=창 배치 저장/복원\n"
+                    f.write("[Desktop Entry]\nType=Application\nName=WindowLayouts\nComment=Save and restore window layouts\n"
                             f"Exec={launcher_command('--background')}\nIcon=windowlayouts\nTerminal=false\n"
                             "X-GNOME-Autostart-enabled=true\n")
             elif os.path.exists(AUTOSTART_FILE):
                 os.remove(AUTOSTART_FILE)
             self.autostart_error.set_text("")
         except OSError as e:
-            self.autostart_error.set_markup(f"<span foreground='red'>설정 실패: {_escape(str(e))}</span>")
+            self.autostart_error.set_markup(f"<span foreground='red'>{_escape(t('general.login_error', error=str(e)))}</span>")
 
 
 def _escape(s: str) -> str:

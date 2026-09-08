@@ -13,7 +13,8 @@ public sealed class TrayIcon : IDisposable
 
     public TrayIcon()
     {
-        _icon = new NotifyIcon { Icon = LoadIcon(), Text = "창 배치", Visible = true, ContextMenuStrip = _menu };
+        _icon = new NotifyIcon { Icon = LoadIcon(), Text = Loc.T("app.name"), Visible = true, ContextMenuStrip = _menu };
+        Loc.Changed += () => _icon.Text = Loc.T("app.name");
         _menu.Opening += (s, e) => Rebuild();
         _icon.MouseUp += (s, e) => { if (e.Button == MouseButtons.Left) ShowMenu(); };
         _icon.DoubleClick += (s, e) => App.ShowMainWindow();
@@ -45,31 +46,31 @@ public sealed class TrayIcon : IDisposable
         {
             if (group.IsCurrent)
             {
-                _menu.Items.Add(new ToolStripMenuItem("현재 모니터 구성: " + group.ConfigName) { Enabled = false });
+                _menu.Items.Add(new ToolStripMenuItem(Loc.T("menu.current_config", ("name", group.ConfigName))) { Enabled = false });
                 if (group.Layouts.Count == 0)
-                    _menu.Items.Add(new ToolStripMenuItem("이 구성에 저장된 배치가 없습니다") { Enabled = false });
+                    _menu.Items.Add(new ToolStripMenuItem(Loc.T("menu.no_layouts_in_config")) { Enabled = false });
                 foreach (var layout in group.Layouts) _menu.Items.Add(LayoutItem(layout));
             }
             else
             {
-                var sub = new ToolStripMenuItem("다른 구성: " + group.ConfigName);
+                var sub = new ToolStripMenuItem(Loc.T("menu.other_config", ("name", group.ConfigName)));
                 foreach (var layout in group.Layouts) sub.DropDownItems.Add(LayoutItem(layout));
                 _menu.Items.Add(sub);
             }
         }
         _menu.Items.Add(new ToolStripSeparator());
 
-        var save = new ToolStripMenuItem("현재 창 배치 저장…");
+        var save = new ToolStripMenuItem(Loc.T("menu.save_current"));
         // 메뉴를 누른 그 순간의 창 상태를 먼저 찍어 두고, 그다음 창을 연다
         save.Click += (s, e) => App.ShowMainWindow(new CaptureRequest { Windows = WindowCapture.CurrentWindows() });
         _menu.Items.Add(save);
 
-        var settings = new ToolStripMenuItem("상세 설정…");
+        var settings = new ToolStripMenuItem(Loc.T("menu.settings"));
         settings.Click += (s, e) => App.ShowMainWindow();
         _menu.Items.Add(settings);
 
         _menu.Items.Add(new ToolStripSeparator());
-        var quit = new ToolStripMenuItem("종료");
+        var quit = new ToolStripMenuItem(Loc.T("menu.quit"));
         quit.Click += (s, e) => System.Windows.Application.Current.Shutdown();
         _menu.Items.Add(quit);
     }

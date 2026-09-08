@@ -117,7 +117,7 @@ public sealed class LayoutStore
         var copy = JsonSerializer.Deserialize<WindowLayout>(JsonSerializer.Serialize(src, Json.Options), Json.Options);
         if (copy == null) return null;
         copy.Id = Guid.NewGuid();
-        copy.Name = src.Name + " 복사본";
+        copy.Name = src.Name + Loc.T("layout.copy_suffix");
         foreach (var w in copy.Windows) w.Id = Guid.NewGuid();
         Wire(copy);
         Layouts.Insert(i + 1, copy);
@@ -224,7 +224,7 @@ public sealed class LayoutStore
         }
         catch (Exception ex)
         {
-            LoadError = "layouts.json을 읽지 못했습니다: " + ex.Message;
+            LoadError = Loc.T("store.read_error", ("error", ex.Message));
         }
         Changed?.Invoke();
     }
@@ -243,7 +243,7 @@ public sealed class LayoutStore
         }
         catch (Exception ex)
         {
-            LoadError = "저장 실패: " + ex.Message;
+            LoadError = Loc.T("store.save_error", ("error", ex.Message));
         }
         Changed?.Invoke();
     }

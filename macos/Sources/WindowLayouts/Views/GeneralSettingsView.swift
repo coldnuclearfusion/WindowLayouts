@@ -15,80 +15,91 @@ struct GeneralSettingsView: View {
     private let ticker = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        @Bindable var l10n = L10n.shared
         Form {
-            Section("시작") {
-                Toggle("로그인할 때 자동으로 실행", isOn: $launchAtLogin)
+            Section(L("general.language")) {
+                Picker(L("general.language"), selection: $l10n.setting) {
+                    Text(L("general.language_system")).tag(L10n.systemOption)
+                    ForEach(l10n.languages, id: \.code) { lang in
+                        Text(lang.name).tag(lang.code)
+                    }
+                }
+                Text(L("general.language_note"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section(L("general.startup")) {
+                Toggle(L("general.launch_at_login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, on in
                         guard !syncingToggle else { return }
                         setLaunchAtLogin(on)
                     }
                 if loginStatus == .requiresApproval {
                     HStack {
-                        Text("시스템 설정 › 일반 › 로그인 항목에서 허용해야 합니다.")
+                        Text(L("general.login_needs_approval"))
                             .foregroundStyle(.secondary)
-                        Button("로그인 항목 열기") { SMAppService.openSystemSettingsLoginItems() }
+                        Button(L("general.open_login_items")) { SMAppService.openSystemSettingsLoginItems() }
                     }
                 }
                 if let loginError {
                     Text(loginError).foregroundStyle(.red).font(.caption)
                 }
-                Text("앱을 /Applications 에 두고 켜는 것을 권장합니다. 앱 위치를 옮기면 다시 켜야 합니다.")
+                Text(L("general.app_location_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("권한") {
+            Section(L("general.permission")) {
                 let trusted = monitor.isTrusted
                 HStack {
                     Image(systemName: trusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(trusted ? .green : .orange)
-                    Text(trusted
-                         ? "손쉬운 사용 권한이 허용되어 있습니다."
-                         : "창을 읽고 옮기려면 손쉬운 사용 권한이 필요합니다.")
+                    Text(trusted ? L("general.accessibility_ok") : L("general.accessibility_needed"))
                     Spacer()
                     if !trusted {
-                        Button("시스템 설정 열기") {
+                        Button(L("general.open_system_settings")) {
                             Accessibility.promptIfNeeded()
                             Accessibility.openSystemSettings()
                         }
                     }
                 }
                 if !trusted {
-                    Text("시스템 설정에서 스위치가 이미 켜져 있는데도 이 메시지가 보이면, 목록에서 WindowLayouts를 선택해 −로 지운 뒤 다시 추가하세요. 앱을 다시 빌드하면 서명이 바뀌어 매번 이렇게 됩니다. 한 번만 하려면 README의 ‘서명’ 항목처럼 로컬 인증서를 만들어 두세요.")
+                    Text(L("general.accessibility_stale_hint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section("모니터") {
-                LabeledContent("현재 구성") { Text(monitor.displayConfig.name) }
+            Section(L("general.monitors")) {
+                LabeledContent(L("general.current_config")) { Text(monitor.displayConfig.name) }
                 ForEach(monitor.displayConfig.displays) { d in
-                    Text("\(d.name)\(d.isMain ? " (주 화면)" : "") · \(d.frame.shortDescription)")
+                    Text("\(d.name)\(d.isMain ? L("display.main_suffix") : "") · \(d.frame.shortDescription)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text("배치는 저장 당시 모니터 구성과 함께 기록됩니다. 메뉴와 목록에서 현재 구성에 맞는 배치가 먼저 나오고, 다른 구성의 배치를 적용하면 창이 있던 모니터를 찾아 위치를 맞춥니다.")
+                Text(L("general.monitors_note"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("배치 데이터") {
-                LabeledContent("파일") {
+            Section(L("general.data")) {
+                LabeledContent(L("general.file")) {
                     Text(store.fileURL.path)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
                         .lineLimit(2)
                 }
                 HStack {
-                    Button("파일 열기") { NSWorkspace.shared.open(store.fileURL) }
-                    Button("Finder에서 보기") { NSWorkspace.shared.activateFileViewerSelecting([store.fileURL]) }
-                    Button("다시 읽기") { store.reload() }
-                    Button("적용 로그 열기") { NSWorkspace.shared.open(ApplyLog.url) }
+                    Button(L("general.open_file")) { NSWorkspace.shared.open(store.fileURL) }
+                    Button(L("general.reveal_file")) { NSWorkspace.shared.activateFileViewerSelecting([store.fileURL]) }
+                    Button(L("general.reload")) { store.reload() }
+                    Button(L("general.open_log")) { NSWorkspace.shared.open(ApplyLog.url) }
                 }
-                Text("터미널이나 단축어에서 적용하려면: open \"windowlayouts://apply?name=배치이름\"")
+                Text(L("general.cli_hint", ["command": "open \"windowlayouts://apply?name=NAME\""]))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("JSON 파일을 직접 편집해 저장하면 앱이 자동으로 다시 읽습니다. 창 항목의 x, y, width, height, title, titleMatch(auto/title/order), enabled 를 고칠 수 있습니다.")
+                Text(L("general.json_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let err = store.loadError {
@@ -97,7 +108,7 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("일반 설정")
+        .navigationTitle(L("sidebar.general"))
         .onReceive(ticker) { _ in
             loginStatus = SMAppService.mainApp.status
             let enabled = loginStatus == .enabled
@@ -118,7 +129,7 @@ struct GeneralSettingsView: View {
             }
             loginError = nil
         } catch {
-            loginError = "설정 실패: \(error.localizedDescription)"
+            loginError = L("general.login_error", ["error": error.localizedDescription])
         }
         loginStatus = SMAppService.mainApp.status
         let enabled = loginStatus == .enabled

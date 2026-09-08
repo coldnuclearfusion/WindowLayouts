@@ -14,8 +14,14 @@ public partial class AskMissingDialog : Window
     public AskMissingDialog(List<string> names, string layoutName)
     {
         InitializeComponent();
-        Message.Text = $"‘{layoutName}’ 배치에 포함된 다음 앱을 실행하거나 새 창을 열어야 합니다.\n\n"
+        Title = Loc.T("app.name");
+        Heading.Text = Loc.T("ask.title");
+        Message.Text = Loc.T("ask.message", ("name", layoutName)) + "\n\n"
             + string.Join("\n", names.Select(n => "• " + n));
+        RememberBox.Content = Loc.T("ask.remember");
+        CancelButton.Content = Loc.T("common.cancel");
+        SkipButton.Content = Loc.T("ask.skip");
+        LaunchButton.Content = Loc.T("ask.launch");
     }
 
     private void Launch_Click(object sender, RoutedEventArgs e) { Choice = Result.Launch; DialogResult = true; }

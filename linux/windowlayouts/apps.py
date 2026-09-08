@@ -57,11 +57,12 @@ def identify(pid: Optional[int], wm_class: tuple) -> tuple:
     exe = exe_of_pid(pid)
     info = find_desktop(wm_class, exe)
     if info is not None:
-        return "desktop:" + (info.get_id() or ""), info.get_display_name() or wm_class[1] or "앱"
+        return "desktop:" + (info.get_id() or ""), info.get_display_name() or wm_class[1] or "app"
     if exe:
         return "exe:" + exe, os.path.basename(exe)
     cls = wm_class[1] if len(wm_class) > 1 else ""
-    return "class:" + cls, cls or "알 수 없는 앱"
+    from .l10n import t
+    return "class:" + cls, cls or t("app.unknown")
 
 
 def desktop_info(app_id: str):

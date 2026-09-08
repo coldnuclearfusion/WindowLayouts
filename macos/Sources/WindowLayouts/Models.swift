@@ -10,11 +10,7 @@ enum LaunchPolicy: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
-        switch self {
-        case .ask: return "매번 물어보기"
-        case .launchMissing: return "실행하고 새 창 열기"
-        case .runningOnly: return "지금 있는 창만 배치"
-        }
+        L("policy.\(rawValue)")
     }
 }
 
@@ -27,11 +23,7 @@ enum TitleMatch: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
-        switch self {
-        case .auto: return "자동"
-        case .title: return "제목만"
-        case .order: return "순서만"
-        }
+        L("match.\(rawValue)")
     }
 }
 
@@ -90,7 +82,7 @@ struct DisplayConfig: Codable, Hashable {
             if counts[d.name] == nil { order.append(d.name) }
             counts[d.name, default: 0] += 1
         }
-        if order.isEmpty { return "모니터 없음" }
+        if order.isEmpty { return L("display.none") }
         return order.map { counts[$0]! > 1 ? "\($0) ×\(counts[$0]!)" : $0 }.joined(separator: " + ")
     }
 
@@ -231,7 +223,7 @@ struct WindowLayout: Identifiable, Hashable, Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
-        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "이름 없음"
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? L("layout.untitled")
         launchPolicy = try c.decodeIfPresent(LaunchPolicy.self, forKey: .launchPolicy) ?? .ask
         windows = try c.decodeIfPresent([WindowEntry].self, forKey: .windows) ?? []
         displayConfig = try c.decodeIfPresent(DisplayConfig.self, forKey: .displayConfig)

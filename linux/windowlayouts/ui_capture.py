@@ -5,8 +5,9 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: E402
 
+from . import prefs  # noqa: E402
+from .l10n import t  # noqa: E402
 from .models import WindowLayout  # noqa: E402
-from .store import Prefs  # noqa: E402
 
 COL_SELECTED, COL_INCONSISTENT, COL_TEXT, COL_DETAIL, COL_KEY = range(5)
 
@@ -14,14 +15,14 @@ COL_SELECTED, COL_INCONSISTENT, COL_TEXT, COL_DETAIL, COL_KEY = range(5)
 class CaptureDialog(Gtk.Dialog):
     def __init__(self, parent, store, request):
         self.is_new = request.target_layout_id is None
-        super().__init__(title="현재 창 배치 저장" if self.is_new else "현재 열린 창 추가",
+        super().__init__(title=t("capture.title_new") if self.is_new else t("capture.title_add"),
                          transient_for=parent, modal=True)
         self.store = store
         self.request = request
         self.new_layout_id = None
         self.set_default_size(660, 560)
-        self.add_button("취소", Gtk.ResponseType.CANCEL)
-        self.save_button = self.add_button("저장" if self.is_new else "추가", Gtk.ResponseType.OK)
+        self.add_button(t("common.cancel"), Gtk.ResponseType.CANCEL)
+        self.save_button = self.add_button(t("common.save") if self.is_new else t("common.add"), Gtk.ResponseType.OK)
         self.set_default_response(Gtk.ResponseType.OK)
 
         box = self.get_content_area()
@@ -29,24 +30,24 @@ class CaptureDialog(Gtk.Dialog):
         box.set_border_width(14)
 
         self.name_entry = Gtk.Entry()
-        self.name_entry.set_text(f"배치 {len(store.layouts) + 1}")
-        self.name_entry.set_placeholder_text("배치 이름")
+        self.name_entry.set_text(t("layout.default_name", n=len(store.layouts) + 1))
+        self.name_entry.set_placeholder_text(t("detail.name_placeholder"))
         self.name_entry.connect("changed", lambda _e: self._update_footer())
         if self.is_new:
             box.pack_start(self.name_entry, False, False, 0)
 
-        config = Gtk.Label(label="모니터 구성: " + (request.display_config.name if request.display_config else "?"))
+        config = Gtk.Label(label=t("capture.config", name=request.display_config.name if request.display_config else "?"))
         config.set_xalign(0)
         config.get_style_context().add_class("dim-label")
         box.pack_start(config, False, False, 0)
 
-        hint = Gtk.Label(label="포함할 창을 선택하세요. 앱 이름 줄의 체크로 그 앱의 창을 한꺼번에 켜고 끕니다.")
+        hint = Gtk.Label(label=t("capture.hint"))
         hint.set_xalign(0)
         hint.get_style_context().add_class("dim-label")
         box.pack_start(hint, False, False, 0)
 
-        self.titles_check = Gtk.CheckButton(label="창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)")
-        self.titles_check.set_active(bool(Prefs.get("saveWindowTitles", True)))
+        self.titles_check = Gtk.CheckButton(label=t("capture.save_titles"))
+        self.titles_check.set_active(bool(prefs.get("saveWindowTitles", True)))
         box.pack_start(self.titles_check, False, False, 0)
 
         # 앱별로 묶은 트리
@@ -58,7 +59,7 @@ class CaptureDialog(Gtk.Dialog):
             if w.app_id not in groups:
                 groups[w.app_id] = self.model.append(None, [True, False, w.app_name, "", f"g:{w.app_id}"])
                 order.append(w.app_id)
-            child = self.model.append(groups[w.app_id], [True, False, w.title or "(제목 없음)", w.frame.short(), f"w:{i}"])
+            child = self.model.append(groups[w.app_id], [True, False, w.title or t("capture.untitled_window"), w.frame.short(), f"w:{i}"])
             self.items[f"w:{i}"] = w
 
         tree = Gtk.TreeView(model=self.model)
@@ -69,12 +70,12 @@ class CaptureDialog(Gtk.Dialog):
         tree.append_column(col)
         text = Gtk.CellRendererText()
         text.set_property("ellipsize", 3)   # END
-        col = Gtk.TreeViewColumn("창", text, text=COL_TEXT)
+        col = Gtk.TreeViewColumn(t("column.title"), text, text=COL_TEXT)
         col.set_expand(True)
         tree.append_column(col)
         detail = Gtk.CellRendererText()
         detail.set_property("foreground", "gray")
-        tree.append_column(Gtk.TreeViewColumn("위치", detail, text=COL_DETAIL))
+        tree.append_column(Gtk.TreeViewColumn(t("column.monitor"), detail, text=COL_DETAIL))
         tree.expand_all()
 
         scroller = Gtk.ScrolledWindow()
@@ -83,7 +84,7 @@ class CaptureDialog(Gtk.Dialog):
         if request.windows:
             scroller.add(tree)
         else:
-            empty = Gtk.Label(label="열려 있는 창을 찾지 못했습니다.")
+            empty = Gtk.Label(label=t("capture.no_windows"))
             scroller.add(empty)
         box.pack_start(scroller, True, True, 0)
 
@@ -142,7 +143,7 @@ class CaptureDialog(Gtk.Dialog):
 
     def _update_footer(self) -> None:
         n = len(self._selected_items())
-        self.count_label.set_text(f"{n}개 창 선택됨")
+        self.count_label.set_text(t("capture.selected_count", count=n))
         ok = n > 0 and (not self.is_new or self.name_entry.get_text().strip() != "")
         self.save_button.set_sensitive(ok)
 
@@ -150,7 +151,7 @@ class CaptureDialog(Gtk.Dialog):
         if response != Gtk.ResponseType.OK:
             return
         titles = self.titles_check.get_active()
-        Prefs.set("saveWindowTitles", titles)
+        prefs.set("saveWindowTitles", titles)
         entries = [w.make_entry(include_title=titles, include_url=False) for w in self._selected_items()]
         if self.request.target_layout_id:
             self.store.append_entries(entries, self.request.target_layout_id)

@@ -2,7 +2,7 @@
 
 The Linux version of [WindowLayouts](../README.md): a tray app that saves window layouts and restores them in one click.
 
-> **Status: draft, not yet run or tested.** Written on a Mac without a Linux desktop at hand, mirroring the macOS app module by module. It is plain Python, so there is no compile step, but expect runtime errors and rough edges on the first run; the structure, data format and behavior are meant to match the macOS version.
+> **Status: draft, not yet run or tested.** Written on a Mac without a Linux desktop at hand, mirroring the macOS app module by module. It is plain Python, so there is no compile step, but expect runtime errors and rough edges on the first run; the structure, data format and behavior are meant to match the macOS version. What has been verified on the Mac: every module compiles, and the pure logic (reading the real macOS `layouts.json`, matching, URL matching, EDID parsing, string lookup in all four languages) passes its tests.
 
 ## Requirements and limits
 
@@ -28,7 +28,7 @@ Or run from the checkout without installing: `python3 -m windowlayouts` inside `
 
 ## What it does
 
-Same feature set as the macOS app, with the same Korean UI and the same `layouts.json` format:
+Same feature set as the macOS app, the same UI languages (Korean, English, Japanese, Simplified Chinese, following `LANGUAGE`/`LC_ALL`/`LANG` by default and selectable under *General*) and the same `layouts.json` format:
 
 - **Save the current layout** from the tray menu or the settings window, choosing windows per app; optionally keep window titles.
 - **Restore in one click** from the tray menu. Windows are unmaximized/unminimized, moved and resized, and raised in the saved order (the first row ends up in front and focused).
@@ -38,7 +38,8 @@ Same feature set as the macOS app, with the same Korean UI and the same `layouts
 - **Apps that aren't running, or have no window:** per-layout policy *ask / launch / only existing*. Apps are identified by their `.desktop` entry when one can be matched from `WM_CLASS` (falling back to the executable path) and launched through it.
 - **Browser pages.** A browser row can carry a page address. Linux has no standard way to read a browser's current tab address, so the app only checks whether the site name appears in a window title; otherwise it opens the page with `--new-window` and places that window.
 - **Starts at login** via `~/.config/autostart`, lives in the tray.
-- **Command line:** `windowlayouts --apply "배치이름"` applies a layout (a second instance forwards the command to the running one over a Unix socket); `--settings` opens the window; `--background` starts without opening the window.
+- **Command line:** `windowlayouts --apply "NAME"` applies a layout (a second instance forwards the command to the running one over a Unix socket); `--settings` opens the window; `--background` starts without opening the window.
+- **Languages.** Strings come from `../shared/strings.json`; `install.sh` copies it into the package as `assets/strings.json`, and running from the checkout reads the shared file directly. Changing the language in *General* rebuilds the tray menu and reopens the settings window in the new language.
 
 ## How windows are placed
 
@@ -58,7 +59,9 @@ windowlayouts/
   __main__.py     entry point, single instance over a Unix socket
   app.py          wires store, applier, tray, windows; handles --apply
   models.py       WindowLayout, WindowEntry, DisplayConfig (same JSON as other platforms)
-  store.py        JSON persistence, file monitoring, grouping by monitor setup, small prefs
+  l10n.py         loads strings.json, resolves the language, t("key") lookup
+  prefs.py        small settings (language, capture options) in prefs.json
+  store.py        JSON persistence, file monitoring, grouping by monitor setup
   x11.py          EWMH: list windows, frames, move/resize with verification, activate, RandR monitors, EDID
   apps.py         WM_CLASS → .desktop entry / executable, launch, running check
   capture.py      collect current windows
