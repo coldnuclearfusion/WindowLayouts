@@ -1,0 +1,167 @@
+<Window x:Class="WindowLayouts.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:WindowLayouts"
+        Title="창 배치" Width="1000" Height="640" MinWidth="900" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 사이드바 -->
+        <DockPanel Grid.Column="0" Background="#F5F5F5">
+            <DockPanel DockPanel.Dock="Top" Margin="8">
+                <Button DockPanel.Dock="Right" Content="＋ 저장" Padding="8,3" ToolTip="현재 열린 창들을 새 배치로 저장" Click="Capture_Click" />
+                <TextBlock Text="창 배치" FontWeight="Bold" VerticalAlignment="Center" />
+            </DockPanel>
+            <ListBox x:Name="Sidebar" BorderThickness="0" Background="Transparent"
+                     SelectionChanged="Sidebar_SelectionChanged"
+                     PreviewMouseRightButtonDown="Sidebar_PreviewMouseRightButtonDown"
+                     ContextMenuOpening="Sidebar_ContextMenuOpening">
+                <ListBox.ContextMenu>
+                    <ContextMenu />
+                </ListBox.ContextMenu>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+                        <Setter Property="Padding" Value="10,5" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock x:Name="MainText" Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="SubText" Text="{Binding Sub}" FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Kind}" Value="header">
+                                <Setter TargetName="MainText" Property="FontWeight" Value="Bold" />
+                                <Setter TargetName="MainText" Property="FontSize" Value="11" />
+                                <Setter TargetName="MainText" Property="Foreground" Value="#666666" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Kind}" Value="empty">
+                                <Setter TargetName="MainText" Property="Foreground" Value="Gray" />
+                                <Setter TargetName="MainText" Property="FontSize" Value="11" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Sub}" Value="">
+                                <Setter TargetName="SubText" Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- 상세 -->
+        <Grid Grid.Column="1">
+            <TextBlock x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"
+                       TextAlignment="Center"
+                       Text="배치를 선택하세요.&#x0a;왼쪽 목록에서 배치를 고르거나, ＋ 저장 버튼으로 현재 창 배치를 저장하세요." />
+
+            <Grid x:Name="DetailPanel" Margin="16" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0">
+                    <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="▶  지금 적용" Padding="14,5" FontWeight="Bold" Click="Apply_Click" />
+                    <TextBox x:Name="NameBox" FontSize="16" Padding="4" Margin="0,0,12,0"
+                             Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock Text="실행 중이 아니거나 창이 없는 앱이 있을 때:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ComboBox x:Name="PolicyCombo" Width="190" SelectedValuePath="Value" DisplayMemberPath="Label"
+                              SelectedValue="{Binding LaunchPolicy}" />
+                    <CheckBox Content="적용할 때 이 창들을 다른 창들 위로 올리기 (표의 위 항목이 가장 앞)"
+                              IsChecked="{Binding RaiseWindows}" VerticalAlignment="Center" Margin="24,0,0,0" />
+                </StackPanel>
+
+                <DockPanel Grid.Row="2" Margin="0,8,0,8">
+                    <Button DockPanel.Dock="Right" Content="변경" Padding="10,2" Click="DisplayChange_Click" />
+                    <TextBlock x:Name="DisplayText" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+                </DockPanel>
+
+                <DataGrid x:Name="WindowsGrid" Grid.Row="3" ItemsSource="{Binding Windows}"
+                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          HeadersVisibility="Column" SelectionMode="Extended" GridLinesVisibility="Horizontal"
+                          RowHeight="26">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="" Width="30" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" />
+                        <DataGridTextColumn Header="앱" Width="120" Binding="{Binding AppName}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="창 제목 (찾을 때 사용)" Width="220" Binding="{Binding Title}" />
+                        <DataGridTextColumn Header="페이지 주소 (브라우저)" Width="180" Binding="{Binding Url}" />
+                        <DataGridTemplateColumn Header="찾기" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{x:Static local:MainWindow.TitleMatchItems}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label"
+                                              SelectedValue="{Binding TitleMatch, UpdateSourceTrigger=PropertyChanged}"
+                                              BorderThickness="0" Background="Transparent" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="모니터" Width="110" Binding="{Binding MonitorName}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="X" Width="60" Binding="{Binding X}" />
+                        <DataGridTextColumn Header="Y" Width="60" Binding="{Binding Y}" />
+                        <DataGridTextColumn Header="너비" Width="60" Binding="{Binding Width}" />
+                        <DataGridTextColumn Header="높이" Width="60" Binding="{Binding Height}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="＋ 현재 열린 창 추가…" Padding="8,3" Margin="0,0,8,0" Click="AddWindows_Click" />
+                    <Button Content="↻ 현재 위치로 갱신" Padding="8,3" Margin="0,0,8,0" Click="Refresh_Click"
+                            ToolTip="저장된 창들을 지금 열린 창에서 찾아 위치와 크기를 다시 읽습니다" />
+                    <Button Content="선택 삭제" Padding="8,3" Margin="0,0,8,0" Click="DeleteRows_Click" />
+                    <Button Content="▲" Padding="8,3" Margin="0,0,4,0" Click="MoveUp_Click" ToolTip="선택한 창을 한 칸 앞으로" />
+                    <Button Content="▼" Padding="8,3" Click="MoveDown_Click" ToolTip="선택한 창을 한 칸 뒤로" />
+                    <TextBlock x:Name="CountText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray" FontSize="11" />
+                </StackPanel>
+
+                <TextBlock x:Name="RefreshText" Grid.Row="5" Foreground="Gray" FontSize="11" Margin="0,6,0,0" />
+
+                <Border x:Name="ReportBox" Grid.Row="6" Background="#F3F3F3" CornerRadius="6" Padding="10" Margin="0,8,0,0" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="ReportHeadline" FontWeight="Bold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="ReportLines" FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <StackPanel x:Name="GeneralPanel" Margin="16" Visibility="Collapsed">
+                <TextBlock Text="시작" FontWeight="Bold" />
+                <CheckBox x:Name="StartupBox" Content="로그인할 때 자동으로 실행" Margin="0,6,0,2" Click="Startup_Click" />
+                <TextBlock x:Name="StartupError" Foreground="Red" FontSize="11" />
+
+                <TextBlock Text="배치 데이터" FontWeight="Bold" Margin="0,16,0,0" />
+                <TextBlock x:Name="FilePathText" FontSize="11" Margin="0,6,0,6" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="파일 열기" Padding="8,3" Margin="0,0,8,0" Click="OpenFile_Click" />
+                    <Button Content="폴더 열기" Padding="8,3" Margin="0,0,8,0" Click="OpenFolder_Click" />
+                    <Button Content="다시 읽기" Padding="8,3" Margin="0,0,8,0" Click="Reload_Click" />
+                    <Button Content="적용 로그 열기" Padding="8,3" Click="OpenLog_Click" />
+                </StackPanel>
+                <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"
+                           Text="JSON 파일을 직접 편집해 저장하면 앱이 자동으로 다시 읽습니다. 창 항목의 x, y, width, height, title, url, titleMatch(auto/title/order), enabled 를 고칠 수 있습니다." />
+                <TextBlock x:Name="LoadErrorText" Foreground="Red" FontSize="11" />
+                <TextBlock FontSize="11" Foreground="Gray" Margin="0,6,0,0"
+                           Text="명령줄이나 단축키 앱에서 적용하려면:  WindowLayouts.exe --apply &quot;배치이름&quot;" />
+
+                <TextBlock Text="모니터" FontWeight="Bold" Margin="0,16,0,0" />
+                <TextBlock x:Name="MonitorsText" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
+                <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"
+                           Text="배치는 저장 당시 모니터 구성과 함께 기록됩니다. 메뉴와 목록에서 현재 구성에 맞는 배치가 먼저 나오고, 다른 구성의 배치를 적용하면 창이 있던 모니터를 찾아 위치를 맞춥니다." />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
