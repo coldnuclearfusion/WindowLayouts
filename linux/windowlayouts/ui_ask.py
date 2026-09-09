@@ -1,4 +1,4 @@
-"""실행 중이 아니거나 창이 없는 앱이 있을 때 물어보는 대화상자 (메인 스레드)"""
+"""Dialog asked when apps aren't running or have no window (main thread)."""
 from __future__ import annotations
 
 import gi

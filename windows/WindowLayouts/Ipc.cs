@@ -6,7 +6,7 @@ using System.Threading;
 namespace WindowLayouts;
 
 /// <summary>
-/// 두 번째 인스턴스(예: WindowLayouts.exe --apply "배치이름")가 명령을 첫 인스턴스에 넘기는 통로.
+/// The channel through which a second instance (e.g. WindowLayouts.exe --apply "NAME") hands its command to the first one.
 /// </summary>
 public static class Ipc
 {

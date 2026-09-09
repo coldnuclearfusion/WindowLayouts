@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// 배치에 포함된 앱이 실행 중이 아닐 때 어떻게 할지
+/// What to do when an app in the layout isn't running
 enum LaunchPolicy: String, Codable, CaseIterable, Identifiable {
     case ask
     case launchMissing
@@ -14,11 +14,11 @@ enum LaunchPolicy: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// 같은 앱의 여러 창 중 어떤 창인지 찾는 방법
+/// How to find which of an app's several windows an entry refers to
 enum TitleMatch: String, Codable, CaseIterable, Identifiable {
-    case auto    // 제목으로 먼저 찾고, 없으면 순서로
-    case title   // 제목이 맞는 창만
-    case order   // 제목 무시, 순서로만
+    case auto    // by title first, then by order
+    case title   // only a window whose title matches
+    case order   // ignore the title, by order only
 
     var id: String { rawValue }
 
@@ -28,9 +28,9 @@ enum TitleMatch: String, Codable, CaseIterable, Identifiable {
 }
 
 
-/// 모니터 하나 (좌표는 주 화면 왼쪽 위가 (0,0)인 AX 좌표계)
+/// One monitor (AX coordinates: the main display's top-left is (0,0))
 struct DisplayInfo: Codable, Hashable, Identifiable {
-    var id: String        // 재부팅 후에도 유지되는 디스플레이 UUID (없으면 이름+해상도)
+    var id: String        // display UUID that survives reboots (otherwise name + resolution)
     var name: String
     var x: Double
     var y: Double
@@ -64,16 +64,16 @@ struct DisplayInfo: Codable, Hashable, Identifiable {
     }
 }
 
-/// 어떤 모니터들이 어떻게 연결되어 있는지
+/// Which monitors are connected and how they are arranged
 struct DisplayConfig: Codable, Hashable {
     var displays: [DisplayInfo]
 
     var ids: Set<String> { Set(displays.map(\.id)) }
 
-    /// 연결된 모니터 집합을 나타내는 키 (배치 순서는 무시)
+    /// Key for the set of connected monitors (arrangement ignored)
     var key: String { displays.map(\.id).sorted().joined(separator: "+") }
 
-    /// "내장 디스플레이 + LG ULTRAFINE" 같은 표시용 이름
+    /// Display name such as "Built-in Display + LG ULTRAFINE"
     var name: String {
         let ordered = displays.sorted { ($0.isMain ? 0 : 1, $0.x) < ($1.isMain ? 0 : 1, $1.x) }
         var counts: [String: Int] = [:]
@@ -97,10 +97,10 @@ struct DisplayConfig: Codable, Hashable {
         displays.first { $0.frame.contains(point) }
     }
 
-    /// 같은 모니터들이 연결되어 있는가 (위치 배열은 달라도 됨)
+    /// Same set of monitors (the arrangement may differ)
     func hasSameDisplays(as other: DisplayConfig) -> Bool { ids == other.ids }
 
-    /// 모니터 집합과 배열까지 완전히 같은가
+    /// Same monitors and the same arrangement
     func isIdentical(to other: DisplayConfig) -> Bool {
         displays.sorted { $0.id < $1.id } == other.displays.sorted { $0.id < $1.id }
     }
@@ -117,9 +117,9 @@ struct WindowEntry: Identifiable, Hashable, Codable {
     var width: Double
     var height: Double
     var enabled: Bool
-    /// 저장 당시 이 창이 있던 모니터 (DisplayInfo.id). 모니터 구성이 바뀌었을 때 위치를 맞추는 데 씀
+    /// The monitor this window was on when saved (DisplayInfo.id); used to fit positions when the setup changed
     var displayID: String?
-    /// 브라우저 창일 때 이 자리에 둘 페이지 주소. 있으면 제목보다 우선해서 그 페이지 탭이 있는 창을 찾고, 없으면 새 창으로 연다
+    /// For browser windows: the page to show here. Takes precedence over the title when finding the window; opens a new window if none has it
     var url: String?
 
     init(id: UUID = UUID(),
@@ -168,7 +168,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
         case id, bundleID, appName, title, titleMatch, x, y, width, height, enabled, displayID, url
     }
 
-    // 손으로 편집한 JSON에서 일부 키가 빠져 있어도 읽을 수 있도록 관대하게 디코딩
+    // Lenient decoding so hand-edited JSON with missing keys still loads
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
@@ -191,9 +191,9 @@ struct WindowLayout: Identifiable, Hashable, Codable {
     var name: String
     var launchPolicy: LaunchPolicy
     var windows: [WindowEntry]
-    /// 저장 당시 모니터 구성. nil이면 모든 구성에서 보이는 "구성 무관" 배치
+    /// Monitor setup at save time. nil means an "any setup" layout that shows under every setup
     var displayConfig: DisplayConfig?
-    /// 적용할 때 이 배치의 창들을 다른 창들 위로 올릴지 (windows 배열의 앞 항목이 더 위)
+    /// Whether to raise the layout's windows above the others when applying (earlier entries end up higher)
     var raiseWindows: Bool
 
     init(id: UUID = UUID(), name: String, launchPolicy: LaunchPolicy = .ask,
@@ -206,7 +206,7 @@ struct WindowLayout: Identifiable, Hashable, Codable {
         self.raiseWindows = raiseWindows
     }
 
-    /// 등장 순서를 유지한 앱 bundle ID 목록 (활성화된 창만)
+    /// App bundle IDs in order of appearance (enabled windows only)
     var enabledBundleIDs: [String] {
         var seen = Set<String>()
         return windows.filter(\.enabled).compactMap { seen.insert($0.bundleID).inserted ? $0.bundleID : nil }

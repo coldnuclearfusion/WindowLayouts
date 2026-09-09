@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace WindowLayouts;
 
-/// <summary>작업 표시줄 알림 영역(트레이) 아이콘과 메뉴</summary>
+/// <summary>Notification area (tray) icon and menu</summary>
 public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
@@ -22,7 +22,7 @@ public sealed class TrayIcon : IDisposable
 
     private void ShowMenu()
     {
-        // 왼쪽 클릭에도 같은 메뉴를 보여준다 (NotifyIcon의 비공개 메서드)
+        // Show the same menu on left click (a private NotifyIcon method)
         var method = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
         method?.Invoke(_icon, null);
     }
@@ -61,7 +61,7 @@ public sealed class TrayIcon : IDisposable
         _menu.Items.Add(new ToolStripSeparator());
 
         var save = new ToolStripMenuItem(Loc.T("menu.save_current"));
-        // 메뉴를 누른 그 순간의 창 상태를 먼저 찍어 두고, 그다음 창을 연다
+        // Capture the window state at the moment the menu was clicked, then open the window
         save.Click += (s, e) => App.ShowMainWindow(new CaptureRequest { Windows = WindowCapture.CurrentWindows() });
         _menu.Items.Add(save);
 

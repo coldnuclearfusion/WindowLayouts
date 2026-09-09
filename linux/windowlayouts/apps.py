@@ -1,4 +1,4 @@
-"""창 → 앱 식별, 실행, 실행 여부. 데스크톱 항목(.desktop)을 찾으면 그것으로, 아니면 실행 파일 경로로."""
+"""Window → app identity, launching, running check. Uses the .desktop entry when one can be matched, otherwise the executable path."""
 from __future__ import annotations
 
 import os
@@ -53,7 +53,7 @@ def find_desktop(wm_class: tuple, exe: Optional[str]):
 
 
 def identify(pid: Optional[int], wm_class: tuple) -> tuple:
-    """(app_id, app_name). app_id는 'desktop:파일.desktop' | 'exe:경로' | 'class:클래스'"""
+    """(app_id, app_name). app_id is 'desktop:<file>.desktop' | 'exe:<path>' | 'class:<WM_CLASS>'"""
     exe = exe_of_pid(pid)
     info = find_desktop(wm_class, exe)
     if info is not None:
@@ -101,7 +101,7 @@ def launch(app_id: str) -> bool:
 
 
 def running_pids(app_id: str) -> list:
-    """이 앱으로 돌고 있는 프로세스 ID들 (/proc 검사)"""
+    """Process IDs running this app (scans /proc)."""
     target = executable_of(app_id)
     if not target:
         return []

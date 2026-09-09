@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\app.ico" />
-    <!-- 공통 문자열 표: 모든 플랫폼이 같은 파일을 쓴다 -->
+    <!-- Shared string table: every platform uses the same file -->
     <EmbeddedResource Include="..\..\shared\strings.json" Link="Assets\strings.json" LogicalName="WindowLayouts.Assets.strings.json" />
   </ItemGroup>
 

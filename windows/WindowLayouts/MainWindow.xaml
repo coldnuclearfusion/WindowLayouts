@@ -10,7 +10,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- 사이드바 -->
+        <!-- sidebar -->
         <DockPanel Grid.Column="0" Background="#F5F5F5">
             <DockPanel DockPanel.Dock="Top" Margin="8">
                 <Button x:Name="CaptureButton" DockPanel.Dock="Right" Padding="8,3" Click="Capture_Click" />
@@ -55,7 +55,7 @@
             </ListBox>
         </DockPanel>
 
-        <!-- 상세 -->
+        <!-- detail -->
         <Grid Grid.Column="1">
             <TextBlock x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"
                        TextAlignment="Center" TextWrapping="Wrap" MaxWidth="480" />

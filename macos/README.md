@@ -17,7 +17,7 @@ The macOS version of [WindowLayouts](../README.md): a menu bar app that saves wi
 
 ## How windows are placed
 
-Each window is resized first, then moved, then resized again, and the resulting frame is read back. If it differs from the request, the app retries twice with the other order and, if it still differs, reports the actual frame in the result ("요청과 다르게 놓임"). The size-before-move order matters: Chromium-based apps (Chrome, Discord, Electron apps) ignore a resize that arrives right after the window has been moved to a display with a different backing scale (for example from a 1x external monitor to the 2x built-in display), which left windows too wide. Fullscreen windows are skipped; minimized windows are restored first.
+Each window is resized first, then moved, then resized again, and the resulting frame is read back. If it differs from the request, the app retries twice with the other order and, if it still differs, reports the actual frame in the result ("Placed differently than requested"). The size-before-move order matters: Chromium-based apps (Chrome, Discord, Electron apps) ignore a resize that arrives right after the window has been moved to a display with a different backing scale (for example from a 1x external monitor to the 2x built-in display), which left windows too wide. Fullscreen windows are skipped; minimized windows are restored first.
 
 Every apply is logged to `~/Library/Application Support/WindowLayouts/apply.log` (*General › Open apply log*): which window was matched to each row, each placement attempt with the frame read back, launches, and browser tab lookups. Check it first when a layout does not come out as expected.
 

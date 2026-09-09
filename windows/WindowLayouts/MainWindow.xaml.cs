@@ -20,7 +20,7 @@ public partial class MainWindow : Window
         public EnumItem(T value, string label) { Value = value; Label = label; }
     }
 
-    // 언어가 바뀌면 창을 다시 만들므로, 그때마다 새 라벨로 다시 계산되도록 매번 만든다
+    // The window is recreated when the language changes, so these are rebuilt on every access to pick up the new labels
     public static IReadOnlyList<EnumItem<TitleMatch>> TitleMatchItems =>
         Enum.GetValues<TitleMatch>().Select(m => new EnumItem<TitleMatch>(m, m.Label())).ToList();
 
@@ -76,7 +76,7 @@ public partial class MainWindow : Window
 
     private void OnStoreChanged() => RebuildSidebar();
 
-    /// <summary>화면의 고정 문구를 현재 언어로 채운다</summary>
+    /// <summary>Fill the fixed texts of the window in the current language</summary>
     private void ApplyStrings()
     {
         Title = Loc.T("app.name");
@@ -118,7 +118,7 @@ public partial class MainWindow : Window
         MonitorsNote.Text = Loc.T("general.monitors_note");
     }
 
-    /// <summary>일반 설정 페이지를 연다 (언어 변경 뒤 창을 다시 만들 때 사용)</summary>
+    /// <summary>Open the general settings page (used when the window is recreated after a language change)</summary>
     public void ShowGeneral()
     {
         var item = _sidebarItems.FirstOrDefault(i => i.Kind == "general");
@@ -126,7 +126,7 @@ public partial class MainWindow : Window
     }
     private void OnDisplayChanged(object? sender, EventArgs e) => Dispatcher.InvokeAsync(() => { RebuildSidebar(); RefreshDisplayRow(); });
 
-    // ---- 사이드바
+    // ---- sidebar
 
     private void RebuildSidebar()
     {
@@ -162,7 +162,7 @@ public partial class MainWindow : Window
 
     private void Sidebar_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // 오른쪽 클릭한 항목을 먼저 선택해서 컨텍스트 메뉴가 그 배치를 대상으로 하게 한다
+        // Select the right-clicked item first so the context menu targets that layout
         var element = e.OriginalSource as DependencyObject;
         while (element != null && element is not ListBoxItem) element = VisualTreeHelper.GetParent(element);
         if (element is ListBoxItem container && container.DataContext is SidebarItem item && item.Kind == "layout")
@@ -210,7 +210,7 @@ public partial class MainWindow : Window
         menu.Items.Add(delete);
     }
 
-    // ---- 패널 전환
+    // ---- switching panels
 
     private void ShowPlaceholder()
     {
@@ -302,7 +302,7 @@ public partial class MainWindow : Window
         ReportBox.Visibility = Visibility.Visible;
     }
 
-    // ---- 상세 패널 동작
+    // ---- detail panel actions
 
     private async void Apply_Click(object sender, RoutedEventArgs e)
     {
@@ -383,7 +383,7 @@ public partial class MainWindow : Window
         WindowsGrid.SelectedItem = entry;
     }
 
-    // ---- 일반 설정
+    // ---- general settings
 
     private void Startup_Click(object sender, RoutedEventArgs e)
     {
@@ -395,7 +395,7 @@ public partial class MainWindow : Window
     private void Language_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_loadingGeneral || LanguageCombo.SelectedValue is not string code || code == Loc.Setting) return;
-        Loc.Setting = code;   // App이 Loc.Changed를 받아 이 창을 새 언어로 다시 만든다
+        Loc.Setting = code;   // App handles Loc.Changed and recreates this window in the new language
     }
 
     private void OpenFile_Click(object sender, RoutedEventArgs e) => OpenPath(LayoutStore.Shared.FilePath);

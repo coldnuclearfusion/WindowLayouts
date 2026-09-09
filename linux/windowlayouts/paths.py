@@ -1,4 +1,4 @@
-"""파일 위치"""
+"""File locations"""
 import os
 
 CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "windowlayouts")

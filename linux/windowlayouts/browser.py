@@ -1,5 +1,5 @@
-"""브라우저 창을 페이지 주소로 다루기. Linux에서는 활성 탭 주소를 읽을 표준 방법이 없어서
-제목에 사이트 이름이 들어 있는지로 추정하고, 없으면 새 창을 연다."""
+"""Browser windows and page addresses. Linux has no standard way to read the active tab's address,
+so a window is matched by whether the site name appears in its title; otherwise a new window is opened."""
 from __future__ import annotations
 
 import os
@@ -57,7 +57,7 @@ def matches(saved: str, candidate: str) -> bool:
 
 
 def title_hints(saved_url: str, title: str) -> bool:
-    """제목에 사이트 이름(호스트의 첫 라벨)이 들어 있으면 그 페이지로 본다. 약한 추정."""
+    """Treat the window as showing the page if the site name (first host label) appears in the title. A weak heuristic."""
     host = normalize(saved_url).split("/")[0].split("?")[0]
     label = host.split(".")[0] if host else ""
     return len(label) >= 3 and label.lower() in (title or "").lower()

@@ -3,7 +3,7 @@ using Microsoft.Win32;
 
 namespace WindowLayouts;
 
-/// <summary>로그인할 때 자동 실행 (HKCU\...\Run)</summary>
+/// <summary>Launch at login (HKCU\...\Run)</summary>
 public static class StartupRegistration
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";

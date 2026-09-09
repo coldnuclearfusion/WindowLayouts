@@ -1,4 +1,4 @@
-"""저장된 배치의 창 항목들을 실제 창에 짝지어 준다 (macOS/Windows와 같은 규칙)."""
+"""Match saved window entries to real windows (same rules as macOS/Windows)."""
 from __future__ import annotations
 
 import re
@@ -32,11 +32,11 @@ def similarity(a: str, b: str, boilerplate: set = frozenset()) -> float:
 
 
 def match(entries: list, windows: list) -> list:
-    """[(entry, window 또는 None)]"""
+    """[(entry, window or None)]"""
     available = list(windows)
     assigned: dict = {}
 
-    # 1) 제목이 정확히 같은 창
+    # 1) exact title match
     for e in entries:
         if e.title_match == "order" or not e.title:
             continue
@@ -45,7 +45,7 @@ def match(entries: list, windows: list) -> list:
                 assigned[e.id] = available.pop(i)
                 break
 
-    # 2) 비슷한 제목: 공통 접미사를 뺀 단어 겹침, 점수 높은 짝부터
+    # 2) similar titles: word overlap after removing the common suffix, best pairs first
     boiler = common_tokens([w.title for w in available])
     candidates = []
     for ei, e in enumerate(entries):
@@ -66,7 +66,7 @@ def match(entries: list, windows: list) -> list:
         used_w.add(wi)
     available = [w for i, w in enumerate(available) if i not in used_w]
 
-    # 3) 남은 항목은 남은 창에 순서대로
+    # 3) remaining entries take the remaining windows in order
     for e in entries:
         if e.id in assigned:
             continue

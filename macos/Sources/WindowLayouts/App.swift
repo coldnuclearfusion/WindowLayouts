@@ -10,7 +10,7 @@ struct WindowLayoutsApp: App {
     private let monitor = SystemMonitor.shared
 
     var body: some Scene {
-        // 메뉴 바 상주 (요구사항 4, 5)
+        // Menu bar presence (requirements 4, 5)
         MenuBarExtra {
             MenuContent()
                 .environment(store)
@@ -21,7 +21,7 @@ struct WindowLayoutsApp: App {
         }
         .menuBarExtraStyle(.menu)
 
-        // 상세 설정 창. 저장된 배치가 하나도 없는 첫 실행에만 자동으로 열린다.
+        // Settings window. Opens automatically only on the first launch, when no layouts are saved yet.
         Window("WindowLayouts", id: MainWindow.windowID) {
             MainWindow()
                 .environment(store)
@@ -50,8 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
-    /// windowlayouts://apply?name=배치이름  또는  windowlayouts://apply?id=UUID
-    /// 터미널(open "windowlayouts://apply?name=…"), 단축어, 단축키 앱에서 배치를 적용할 때 쓴다.
+    /// windowlayouts://apply?name=<layout name>  or  windowlayouts://apply?id=<UUID>
+    /// Used to apply a layout from a terminal (open "windowlayouts://apply?name=…"), Shortcuts, or a hotkey app.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             guard url.scheme?.lowercased() == "windowlayouts", url.host?.lowercased() == "apply" else { continue }

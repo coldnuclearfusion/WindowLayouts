@@ -1,4 +1,4 @@
-"""다국어 문자열. 공통 파일 shared/strings.json 을 읽는다 (패키지 assets 사본 또는 저장소의 ../shared)."""
+"""UI strings. Reads the shared strings.json (the copy in the package assets, or ../shared in the checkout)."""
 from __future__ import annotations
 
 import json
@@ -66,7 +66,7 @@ def on_change(cb: Callable[[], None]) -> None:
 
 
 def resolve(value: str) -> str:
-    """시스템 언어를 지원 언어 중 하나로 맞춘다. 중국어는 간체로 통일."""
+    """Map the system language to one of the supported languages. Chinese maps to Simplified."""
     available = [c for c, _ in _languages]
     if value != SYSTEM_OPTION and value in available:
         return value

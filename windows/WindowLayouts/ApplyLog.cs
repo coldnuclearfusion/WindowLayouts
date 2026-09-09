@@ -3,7 +3,7 @@ using System.IO;
 
 namespace WindowLayouts;
 
-/// <summary>배치 적용 과정을 파일에 남긴다: %LOCALAPPDATA%\WindowLayouts\apply.log</summary>
+/// <summary>Writes the apply log: %LOCALAPPDATA%\WindowLayouts\apply.log</summary>
 public static class ApplyLog
 {
     public static string FilePath => Path.Combine(LayoutStore.Shared.DirectoryPath, "apply.log");

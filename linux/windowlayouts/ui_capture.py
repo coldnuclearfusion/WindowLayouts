@@ -1,4 +1,4 @@
-"""현재 열린 창 중 어떤 것을 배치에 넣을지 고르는 대화상자"""
+"""Dialog for choosing which open windows to put into a layout."""
 from __future__ import annotations
 
 import gi
@@ -50,7 +50,7 @@ class CaptureDialog(Gtk.Dialog):
         self.titles_check.set_active(bool(prefs.get("saveWindowTitles", True)))
         box.pack_start(self.titles_check, False, False, 0)
 
-        # 앱별로 묶은 트리
+        # tree grouped by app
         self.model = Gtk.TreeStore(bool, bool, str, str, str)
         self.items: dict = {}
         groups: dict = {}

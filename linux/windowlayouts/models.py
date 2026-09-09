@@ -1,4 +1,4 @@
-"""배치 데이터 모델. JSON 형식은 macOS/Windows 버전과 같다."""
+"""Layout data model. The JSON format is the same as the macOS/Windows versions."""
 from __future__ import annotations
 
 import json
@@ -22,7 +22,7 @@ def match_label(key: str) -> str:
 
 @dataclass
 class Frame:
-    """화면 좌표계의 사각형 (루트 창 기준 픽셀, 왼쪽 위가 (0,0))."""
+    """A rectangle in screen coordinates (root-window pixels, top-left is (0,0))."""
     x: float
     y: float
     width: float

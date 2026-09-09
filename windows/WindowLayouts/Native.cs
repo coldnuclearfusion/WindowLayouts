@@ -4,7 +4,7 @@ using System.Text;
 
 namespace WindowLayouts;
 
-/// <summary>Win32 API 바인딩</summary>
+/// <summary>Win32 API bindings</summary>
 internal static class Native
 {
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -96,13 +96,13 @@ internal static class Native
         return sb.ToString();
     }
 
-    /// <summary>다른 가상 데스크톱에 있거나 정지된 스토어 앱처럼 "숨겨진" 창인지</summary>
+    /// <summary>Whether the window is "cloaked", e.g. on another virtual desktop or a suspended Store app</summary>
     public static bool IsCloaked(IntPtr hWnd)
     {
         return DwmGetWindowAttributeInt(hWnd, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0;
     }
 
-    /// <summary>보이는 테두리 기준 창 사각형 (Windows 10+의 투명 테두리 제외)</summary>
+    /// <summary>The visible window rectangle (excluding the invisible borders of Windows 10+)</summary>
     public static bool TryGetExtendedFrame(IntPtr hWnd, out RECT rect)
     {
         if (DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, out rect, Marshal.SizeOf<RECT>()) == 0) return true;
@@ -128,7 +128,7 @@ internal static class Native
         finally { CloseHandle(h); }
     }
 
-    /// <summary>스토어(MSIX) 앱이면 AppUserModelId, 일반 앱이면 null</summary>
+    /// <summary>The AppUserModelId for Store (MSIX) apps, null for classic apps</summary>
     public static string? Aumid(uint pid)
     {
         var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);

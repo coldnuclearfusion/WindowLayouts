@@ -1,10 +1,10 @@
 import AppKit
 import ApplicationServices
 
-/// 브라우저 창을 페이지 주소로 찾거나 새 창으로 여는 기능.
-/// - Safari, Chrome 계열(Chrome/Edge/Brave/Vivaldi): AppleScript로 모든 창의 모든 탭을 훑을 수 있어
-///   뒤에 숨은 탭도 찾아서 활성화한다 (처음 한 번 "자동화" 권한 허용 필요).
-/// - Firefox 등 AppleScript가 없는 브라우저: 접근성 API로 각 창의 활성 탭 주소만 볼 수 있다.
+/// Finding a browser window by page address, or opening the page in a new window.
+/// - Safari and Chromium browsers (Chrome/Edge/Brave/Vivaldi): AppleScript can enumerate every tab of every window,
+///   so tabs hidden behind other tabs are found and activated (needs the Automation permission once).
+/// - Firefox and other browsers without AppleScript: only the active tab's address of each window is visible through Accessibility.
 enum BrowserSupport {
     enum Kind { case safari, chromiumScriptable, chromiumBinary, firefox }
 
@@ -28,9 +28,9 @@ enum BrowserSupport {
 
     static func isBrowser(_ bundleID: String) -> Bool { kind(of: bundleID) != nil }
 
-    // MARK: - 주소 비교
+    // MARK: - Address comparison
 
-    /// 비교용 정규화: 소문자 스킴/호스트, www. 제거, 끝의 / 와 #조각 제거
+    /// Normalization for comparison: lowercase scheme/host, strip www., trailing / and the #fragment
     static func normalize(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if let hash = s.firstIndex(of: "#") { s = String(s[..<hash]) }
@@ -45,8 +45,8 @@ enum BrowserSupport {
         return h + path + query
     }
 
-    /// 저장된 주소가 열린 탭 주소의 앞부분과 같으면 같은 페이지로 본다.
-    /// 예: 저장 "youtube.com" ↔ 탭 "https://www.youtube.com/watch?v=…" → 일치
+    /// The saved address matches an open tab when it is a prefix of the tab's address.
+    /// Example: saved "youtube.com" ↔ tab "https://www.youtube.com/watch?v=…" → match
     static func matches(saved: String, candidate: String) -> Bool {
         let a = normalize(saved), b = normalize(candidate)
         guard !a.isEmpty, !b.isEmpty else { return false }
@@ -56,7 +56,7 @@ enum BrowserSupport {
         return next == "/" || next == "?" || next == "&"
     }
 
-    // MARK: - AppleScript로 탭 찾기
+    // MARK: - Finding tabs with AppleScript
 
     struct TabHit {
         let windowID: Int
@@ -66,7 +66,7 @@ enum BrowserSupport {
 
     enum ScriptError: Error { case notPermitted, failed(String) }
 
-    /// 모든 창의 모든 탭 (windowID, tabIndex, url)
+    /// Every tab of every window (windowID, tabIndex, url)
     static func listTabs(app: NSRunningApplication) throws -> [TabHit] {
         guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID) else { return [] }
         let source: String
@@ -110,7 +110,7 @@ enum BrowserSupport {
         }
     }
 
-    /// 탭을 활성화하고 그 창의 화면 좌표(bounds)를 돌려준다
+    /// Activate the tab and return its window's screen bounds
     static func activate(_ hit: TabHit, app: NSRunningApplication) throws -> CGRect? {
         guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID) else { return nil }
         let source: String
@@ -154,9 +154,9 @@ enum BrowserSupport {
         return result.stringValue ?? ""
     }
 
-    // MARK: - 새 창으로 열기
+    // MARK: - Opening a new window
 
-    /// 새 창에 URL을 연다. 성공 여부만 돌려주고, 창이 생기는 건 호출한 쪽에서 기다린다.
+    /// Open the URL in a new window. Returns only whether the request was sent; the caller waits for the window.
     static func openInNewWindow(_ url: String, app: NSRunningApplication) -> Bool {
         guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID),
               let appURL = app.bundleURL else { return false }
@@ -170,7 +170,7 @@ enum BrowserSupport {
             """
             return (try? run(source)) != nil
         case .chromiumScriptable, .chromiumBinary, .firefox:
-            // 실행 파일을 --new-window 로 다시 부르면 이미 실행 중인 인스턴스가 새 창을 연다
+            // Running the executable again with --new-window makes the running instance open a new window
             guard let exec = Bundle(url: appURL)?.executableURL else { return false }
             let process = Process()
             process.executableURL = exec

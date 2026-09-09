@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Accessibility API로 읽은 실제 창 하나
+/// One real window as read through the Accessibility API
 struct AXWindow {
     let element: AXUIElement
     let title: String
@@ -19,7 +19,7 @@ enum AX {
         "AXPopover",
     ]
 
-    /// 앱의 일반 창 목록 (대화상자, 시트, 플로팅 창은 제외)
+    /// The app's normal windows (dialogs, sheets and floating windows excluded)
     static func windows(for app: NSRunningApplication) -> [AXWindow] {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(appElement, 1.0)
@@ -45,7 +45,7 @@ enum AX {
 
     enum PlaceOutcome: Equatable {
         case placed
-        case mismatch(actual: CGRect)   // 옮기긴 했지만 앱이 크기/위치를 다르게 잡음
+        case mismatch(actual: CGRect)   // moved, but the app kept a different size/position
         case failed
     }
 
@@ -54,9 +54,9 @@ enum AX {
         return CGRect(origin: p, size: s)
     }
 
-    /// 창을 주어진 위치/크기로 옮기고, 실제로 그렇게 됐는지 읽어서 확인한다.
-    /// 안 맞으면 순서를 바꿔 가며 최대 3번 시도한다 (다른 배율의 화면으로 옮길 때
-    /// Chromium 계열 앱이 크기 변경을 되돌리는 경우 대응).
+    /// Move the window to the given position/size and read back whether it actually happened.
+    /// If not, retry up to 3 times with the order of operations changed (Chromium-based apps
+    /// undo a resize that arrives right after a move to a display with a different scale).
     static func place(_ element: AXUIElement, _ frame: CGRect, log: ((String) -> Void)? = nil) -> PlaceOutcome {
         if bool(element, kAXMinimizedAttribute) == true {
             setBool(element, kAXMinimizedAttribute, false)
@@ -73,13 +73,13 @@ enum AX {
             var ok = false
             switch attempt {
             case 1:
-                // 크기 → 위치 → 크기: 지금 있는 화면에서 크기를 먼저 맞춘 뒤 옮긴다
+                // size → position → size: resize on the current display first, then move
                 ok = setSize(element, kAXSizeAttribute, frame.size)
                 ok = setPoint(element, kAXPositionAttribute, frame.origin) || ok
                 ok = setSize(element, kAXSizeAttribute, frame.size) || ok
             case 2:
                 usleep(150_000)
-                // 위치 → 크기 → 위치
+                // position → size → position
                 ok = setPoint(element, kAXPositionAttribute, frame.origin)
                 ok = setSize(element, kAXSizeAttribute, frame.size) || ok
                 ok = setPoint(element, kAXPositionAttribute, frame.origin) || ok
@@ -99,14 +99,14 @@ enum AX {
         return .mismatch(actual: now)
     }
 
-    /// 예전 호출 호환용
+    /// Kept for older call sites
     @discardableResult
     static func setFrame(_ element: AXUIElement, _ frame: CGRect) -> Bool {
         place(element, frame) != .failed
     }
 
-    /// 브라우저 창이 보여주는 페이지 주소 (활성 탭). 창 → 웹 영역(AXWebArea)의 AXURL을 찾는다.
-    /// 다른 탭의 주소는 접근성 API로 볼 수 없다.
+    /// The page address shown by a browser window (active tab): window → web area (AXWebArea) → AXURL.
+    /// Other tabs' addresses are not visible through the Accessibility API.
     static func webURL(of window: AXUIElement, maxDepth: Int = 16, maxNodes: Int = 1500) -> String? {
         if let doc = string(window, kAXDocumentAttribute), doc.hasPrefix("http") { return doc }
         var queue: [(AXUIElement, Int)] = [(window, 0)]
@@ -144,7 +144,7 @@ enum AX {
         return AXUIElementGetPid(element, &pid) == .success ? pid : 0
     }
 
-    // MARK: - 속성 읽기/쓰기
+    // MARK: - Reading and writing attributes
 
     static func copyAttribute(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
         var value: CFTypeRef?

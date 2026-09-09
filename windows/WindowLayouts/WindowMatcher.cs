@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace WindowLayouts;
 
-/// <summary>저장된 배치의 창 항목들을 실제 창에 짝지어 준다.</summary>
+/// <summary>Matches saved window entries to real windows.</summary>
 public static class WindowMatcher
 {
     public static List<(WindowEntry entry, WindowInfo? window)> Match(IList<WindowEntry> entries, IList<WindowInfo> windows)
@@ -13,7 +13,7 @@ public static class WindowMatcher
         var available = windows.ToList();
         var assigned = new Dictionary<Guid, WindowInfo>();
 
-        // 1) 제목이 정확히 같은 창
+        // 1) exact title match
         foreach (var e in entries)
         {
             if (e.TitleMatch == TitleMatch.Order || string.IsNullOrEmpty(e.Title)) continue;
@@ -21,8 +21,8 @@ public static class WindowMatcher
             if (i >= 0) { assigned[e.Id] = available[i]; available.RemoveAt(i); }
         }
 
-        // 2) 비슷한 제목 (탭 제목처럼 일부만 바뀌는 경우). 점수 높은 짝부터 배정.
-        //    모든 창에 공통으로 붙는 단어(앱 이름 등)는 점수 계산에서 뺀다.
+        // 2) similar titles (for example tab titles that partly changed), best pairs first.
+        //    Words shared by all windows (such as the app name) are excluded from the score.
         var boilerplate = CommonTokens(available.Select(w => w.Title));
         var candidates = new List<(int ei, int wi, double score)>();
         for (int ei = 0; ei < entries.Count; ei++)
@@ -47,7 +47,7 @@ public static class WindowMatcher
         }
         available = available.Where((w, i) => !usedWindows.Contains(i)).ToList();
 
-        // 3) 남은 항목은 남은 창에 순서대로
+        // 3) remaining entries take the remaining windows in order
         foreach (var e in entries)
         {
             if (assigned.ContainsKey(e.Id)) continue;
@@ -65,7 +65,7 @@ public static class WindowMatcher
     public static HashSet<string> Tokens(string s) =>
         Splitter.Split(s.ToLowerInvariant()).Where(t => t.Length > 0).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>두 개 이상의 창 제목 모두에 들어 있는 단어들</summary>
+    /// <summary>Words that appear in every one of two or more window titles</summary>
     public static HashSet<string> CommonTokens(IEnumerable<string> titles)
     {
         var list = titles.ToList();

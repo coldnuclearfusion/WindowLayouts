@@ -5,7 +5,7 @@ let cs = CGColorSpaceCreateDeviceRGB()
 let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
                     space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
 
-// 배경: macOS 아이콘 그리드에 맞춘 둥근 사각형 + 파란 그라데이션
+// Background: rounded square on the macOS icon grid with a blue gradient
 let bg = CGRect(x: 100, y: 100, width: 824, height: 824)
 let bgPath = CGPath(roundedRect: bg, cornerWidth: 185, cornerHeight: 185, transform: nil)
 ctx.saveGState()
@@ -23,12 +23,12 @@ let gradient = CGGradient(colorsSpace: cs,
                                    CGColor(red: 0.10, green: 0.34, blue: 0.84, alpha: 1)] as CFArray,
                           locations: [0, 1])!
 ctx.drawLinearGradient(gradient, start: CGPoint(x: 512, y: 924), end: CGPoint(x: 512, y: 100), options: [])
-// 위쪽에 은은한 하이라이트
+// Soft highlight at the top
 ctx.setFillColor(CGColor(gray: 1, alpha: 0.10))
 ctx.fillEllipse(in: CGRect(x: -100, y: 700, width: 1224, height: 520))
 ctx.restoreGState()
 
-// 창 세 개: 왼쪽 큰 창 + 오른쪽 위/아래
+// Three windows: a large one on the left, two stacked on the right
 func drawWindow(_ r: CGRect) {
     let p = CGPath(roundedRect: r, cornerWidth: 28, cornerHeight: 28, transform: nil)
     ctx.saveGState()
@@ -49,7 +49,7 @@ func drawWindow(_ r: CGRect) {
         ctx.setFillColor(CGColor(red: c.0, green: c.1, blue: c.2, alpha: 1))
         ctx.fillEllipse(in: CGRect(x: r.minX + 26 + CGFloat(i) * 34, y: bar.midY - 11, width: 22, height: 22))
     }
-    // 본문에 옅은 줄 몇 개 (내용 암시)
+    // A few faint lines suggesting content
     ctx.setFillColor(CGColor(red: 0.80, green: 0.86, blue: 0.95, alpha: 1))
     var y = bar.minY - 56
     var line = 0
