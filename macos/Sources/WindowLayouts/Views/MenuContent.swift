@@ -39,7 +39,7 @@ struct MenuContent: View {
         Divider()
 
         Button(L("menu.save_current")) {
-            // 메뉴를 누른 그 순간의 창 상태를 먼저 찍어 두고, 그다음 창을 연다
+            // Capture the window state at the moment the menu was clicked, then open the window
             appState.captureRequest = CaptureRequest(windows: WindowCapture.currentWindows(), targetLayoutID: nil)
             showMainWindow()
         }

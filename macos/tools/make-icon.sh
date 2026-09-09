@@ -1,6 +1,6 @@
 #!/bin/bash
-# tools/makeicon.swift 로 1024px 아이콘을 그리고 Resources/AppIcon.icns 를 다시 만든다.
-# 아이콘 모양을 바꾸려면 makeicon.swift 를 고친 뒤 이 스크립트를 실행하면 된다.
+# Render the 1024px icon with tools/makeicon.swift and rebuild Resources/AppIcon.icns.
+# To change the artwork, edit makeicon.swift and run this script again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
@@ -22,4 +22,4 @@ done <<'LIST'
 1024 icon_512x512@2x
 LIST
 iconutil -c icns "$TMP/AppIcon.iconset" -o Resources/AppIcon.icns
-echo "완료: Resources/AppIcon.icns"
+echo "Done: Resources/AppIcon.icns"

@@ -9,10 +9,10 @@ using System.Text.Json.Serialization;
 
 namespace WindowLayouts;
 
-/// <summary>배치에 포함된 앱이 실행 중이 아니거나 창이 없을 때 어떻게 할지</summary>
+/// <summary>What to do when an app in the layout isn't running or has no window</summary>
 public enum LaunchPolicy { Ask, LaunchMissing, RunningOnly }
 
-/// <summary>같은 앱의 여러 창 중 어떤 창인지 찾는 방법</summary>
+/// <summary>How to find which of an app's several windows an entry refers to</summary>
 public enum TitleMatch { Auto, Title, Order }
 
 public static class EnumLabels
@@ -37,7 +37,7 @@ public static class EnumLabels
     public static string Label(this TitleMatch m) => Loc.T("match." + m.Key());
 }
 
-/// <summary>화면 좌표계의 사각형 (가상 화면 기준, 주 모니터 왼쪽 위가 (0,0), 물리 픽셀)</summary>
+/// <summary>A rectangle in screen coordinates (virtual screen, main monitor's top-left is (0,0), physical pixels)</summary>
 public readonly record struct WinFrame(double X, double Y, double Width, double Height)
 {
     public double Right => X + Width;
@@ -69,7 +69,7 @@ public abstract class NotifyBase : INotifyPropertyChanged
     protected void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-/// <summary>모니터 하나</summary>
+/// <summary>One monitor</summary>
 public sealed class DisplayInfo
 {
     [JsonPropertyName("id")] public string Id { get; set; } = "";
@@ -86,17 +86,17 @@ public sealed class DisplayInfo
         Id == o.Id && Name == o.Name && X == o.X && Y == o.Y && Width == o.Width && Height == o.Height && IsMain == o.IsMain;
 }
 
-/// <summary>어떤 모니터들이 어떻게 연결되어 있는지</summary>
+/// <summary>Which monitors are connected and how they are arranged</summary>
 public sealed class DisplayConfig
 {
     [JsonPropertyName("displays")] public List<DisplayInfo> Displays { get; set; } = new();
 
     [JsonIgnore] public HashSet<string> Ids => Displays.Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>연결된 모니터 집합을 나타내는 키 (배치 순서는 무시)</summary>
+    /// <summary>Key for the set of connected monitors (arrangement ignored)</summary>
     [JsonIgnore] public string Key => string.Join("+", Displays.Select(d => d.Id).OrderBy(s => s, StringComparer.Ordinal));
 
-    /// <summary>"내장 + LG" 같은 표시용 이름</summary>
+    /// <summary>Display name such as "Built-in + LG"</summary>
     [JsonIgnore]
     public string Name
     {
@@ -121,10 +121,10 @@ public sealed class DisplayConfig
 
     public DisplayInfo? DisplayContaining(double x, double y) => Displays.FirstOrDefault(d => d.Frame.Contains(x, y));
 
-    /// <summary>같은 모니터들이 연결되어 있는가 (위치 배열은 달라도 됨)</summary>
+    /// <summary>Same set of monitors (the arrangement may differ)</summary>
     public bool HasSameDisplays(DisplayConfig other) => Ids.SetEquals(other.Ids);
 
-    /// <summary>모니터 집합과 배열까지 완전히 같은가</summary>
+    /// <summary>Same monitors and the same arrangement</summary>
     public bool IsIdentical(DisplayConfig other)
     {
         var a = Displays.OrderBy(d => d.Id, StringComparer.Ordinal).ToList();
@@ -149,7 +149,7 @@ public sealed class WindowEntry : NotifyBase
     private string _monitorName = "";
 
     [JsonPropertyName("id")] public Guid Id { get => _id; set => Set(ref _id, value); }
-    /// <summary>앱 식별자. Windows에서는 "exe:전체경로" 또는 스토어 앱의 "aumid:…" (macOS 번들 ID에 해당)</summary>
+    /// <summary>App identifier. On Windows "exe:<full path>" or "aumid:…" for Store apps (the macOS bundle ID equivalent)</summary>
     [JsonPropertyName("bundleID")] public string BundleID { get => _bundleID; set => Set(ref _bundleID, value); }
     [JsonPropertyName("appName")] public string AppName { get => _appName; set => Set(ref _appName, value); }
     [JsonPropertyName("title")] public string Title { get => _title; set => Set(ref _title, value ?? ""); }
@@ -159,9 +159,9 @@ public sealed class WindowEntry : NotifyBase
     [JsonPropertyName("width")] public double Width { get => _width; set => Set(ref _width, Math.Round(value)); }
     [JsonPropertyName("height")] public double Height { get => _height; set => Set(ref _height, Math.Round(value)); }
     [JsonPropertyName("enabled")] public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
-    /// <summary>저장 당시 이 창이 있던 모니터 (DisplayInfo.Id)</summary>
+    /// <summary>The monitor this window was on when saved (DisplayInfo.Id)</summary>
     [JsonPropertyName("displayID")] public string? DisplayID { get => _displayID; set => Set(ref _displayID, value); }
-    /// <summary>브라우저 창일 때 이 자리에 둘 페이지 주소</summary>
+    /// <summary>For browser windows: the page to show here</summary>
     [JsonPropertyName("url")]
     public string? Url
     {
@@ -173,7 +173,7 @@ public sealed class WindowEntry : NotifyBase
         }
     }
 
-    /// <summary>화면 표시용 (저장 안 함): 이 창이 있던 모니터 이름</summary>
+    /// <summary>Display-only (not saved): the name of the monitor this window was on</summary>
     [JsonIgnore] public string MonitorName { get => _monitorName; set => Set(ref _monitorName, value); }
 
     [JsonIgnore]
@@ -216,13 +216,13 @@ public sealed class WindowLayout : NotifyBase
     [JsonPropertyName("id")] public Guid Id { get => _id; set => Set(ref _id, value); }
     [JsonPropertyName("name")] public string Name { get => _name; set => Set(ref _name, value ?? ""); }
     [JsonPropertyName("launchPolicy")] public LaunchPolicy LaunchPolicy { get => _launchPolicy; set => Set(ref _launchPolicy, value); }
-    /// <summary>적용할 때 이 배치의 창들을 다른 창들 위로 올릴지 (Windows 배열의 앞 항목이 더 위)</summary>
+    /// <summary>Whether to raise the layout's windows above the others when applying (earlier entries end up higher)</summary>
     [JsonPropertyName("raiseWindows")] public bool RaiseWindows { get => _raiseWindows; set => Set(ref _raiseWindows, value); }
-    /// <summary>저장 당시 모니터 구성. null이면 모든 구성에서 보이는 "구성 무관" 배치</summary>
+    /// <summary>Monitor setup at save time. null means an "any setup" layout that shows under every setup</summary>
     [JsonPropertyName("displayConfig")] public DisplayConfig? DisplayConfig { get => _displayConfig; set => Set(ref _displayConfig, value); }
     [JsonPropertyName("windows")] public ObservableCollection<WindowEntry> Windows { get; set; } = new();
 
-    /// <summary>등장 순서를 유지한 앱 ID 목록 (활성화된 창만)</summary>
+    /// <summary>App IDs in order of appearance (enabled windows only)</summary>
     [JsonIgnore]
     public List<string> EnabledAppIds
     {

@@ -9,8 +9,8 @@ struct LayoutGroup: Identifiable {
     let layouts: [WindowLayout]
 }
 
-/// 배치 목록을 들고 있고 ~/Library/Application Support/WindowLayouts/layouts.json 에 저장한다.
-/// 파일을 직접 편집하면 자동으로 다시 읽는다.
+/// Holds the layout list and saves it to ~/Library/Application Support/WindowLayouts/layouts.json.
+/// Reloads automatically when the file is edited by hand.
 @Observable
 final class LayoutStore {
     static let shared = LayoutStore()
@@ -39,7 +39,7 @@ final class LayoutStore {
         startWatching()
     }
 
-    // MARK: - 조회
+    // MARK: - Queries
 
     func layout(id: UUID) -> WindowLayout? {
         layouts.first { $0.id == id }
@@ -75,7 +75,7 @@ final class LayoutStore {
         )
     }
 
-    // MARK: - 변경
+    // MARK: - Changes
 
     func add(_ layout: WindowLayout) {
         layouts.append(layout)
@@ -126,7 +126,7 @@ final class LayoutStore {
         save()
     }
 
-    /// 창 항목 하나를 위(-1)/아래(+1)로 한 칸 옮긴다. 배열 순서 = 앞뒤 쌓임 순서
+    /// Move one window entry up (-1) or down (+1). Array order = stacking order
     func moveEntry(_ entryID: UUID, by delta: Int, in layoutID: UUID) {
         guard let li = index(of: layoutID),
               let wi = layouts[li].windows.firstIndex(where: { $0.id == entryID }) else { return }
@@ -154,7 +154,7 @@ final class LayoutStore {
         save()
     }
 
-    /// 목록 일부(ids)만 보이는 섹션 안에서 드래그로 순서를 바꿀 때, 전체 순서에 반영한다.
+    /// Apply a drag reorder made inside a section (a subset of ids) to the full list.
     func move(within ids: [UUID], fromOffsets: IndexSet, toOffset: Int) {
         var subset = ids
         subset.move(fromOffsets: fromOffsets, toOffset: toOffset)
@@ -167,9 +167,9 @@ final class LayoutStore {
         save()
     }
 
-    // MARK: - 모니터 구성별 묶기
+    // MARK: - Grouping by monitor setup
 
-    /// 현재 모니터 구성에 맞는 배치(구성 무관 배치 포함)가 첫 그룹, 나머지는 구성별로 뒤에 온다.
+    /// Layouts for the current monitor setup (including "any setup" layouts) form the first group; the rest are grouped per setup.
     func groups(current: DisplayConfig) -> [LayoutGroup] {
         var currentLayouts: [WindowLayout] = []
         var others: [(key: String, name: String, layouts: [WindowLayout])] = []
@@ -189,7 +189,7 @@ final class LayoutStore {
         return result
     }
 
-    // MARK: - 저장/읽기
+    // MARK: - Save / load
 
     func reload() {
         load(force: true)
@@ -223,7 +223,7 @@ final class LayoutStore {
         }
     }
 
-    /// 텍스트 필드 편집처럼 잦은 변경은 0.5초 뒤에 한 번만 저장
+    /// Frequent changes such as text edits are saved once, 0.5 s later
     func scheduleSave() {
         pendingSave?.cancel()
         let item = DispatchWorkItem { [weak self] in self?.save() }
@@ -231,7 +231,7 @@ final class LayoutStore {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
     }
 
-    // MARK: - 파일 감시
+    // MARK: - File watching
 
     private func startWatching() {
         watcher?.cancel()
@@ -244,7 +244,7 @@ final class LayoutStore {
             queue: .main
         )
         source.setEventHandler { [weak self] in
-            // 에디터의 원자적 저장(rename)에 대비해 잠시 뒤 다시 읽고 감시를 새로 건다
+            // Editors save atomically (rename), so reload a moment later and re-arm the watcher
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 guard let self else { return }
                 self.load(force: false)

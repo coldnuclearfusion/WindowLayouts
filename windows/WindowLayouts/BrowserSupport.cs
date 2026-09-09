@@ -7,9 +7,9 @@ using System.Windows.Automation;
 namespace WindowLayouts;
 
 /// <summary>
-/// 브라우저 창을 페이지 주소로 찾거나 새 창으로 여는 기능.
-/// Windows에서는 UI 자동화(UIA)로 주소창 값을 읽어 각 창의 활성 탭 주소만 알 수 있다.
-/// 뒤에 숨은 탭의 주소는 볼 수 없으므로, 없으면 새 창을 연다.
+/// Finding a browser window by page address, or opening the page in a new window.
+/// On Windows only the active tab's address of each window is available, read from the address bar through UI Automation.
+/// Background tabs cannot be inspected, so a new window is opened when no window shows the page.
 /// </summary>
 public static class BrowserSupport
 {
@@ -25,9 +25,9 @@ public static class BrowserSupport
         return exe != null && Browsers.Contains(Path.GetFileName(exe));
     }
 
-    // ---- 주소 비교
+    // ---- address comparison
 
-    /// <summary>비교용 정규화: 소문자 호스트, www. 제거, 끝의 / 와 #조각 제거, 스킴 제거</summary>
+    /// <summary>Normalization for comparison: lowercase host, strip www., trailing / and the #fragment, drop the scheme</summary>
     public static string Normalize(string raw)
     {
         var s = raw.Trim();
@@ -44,7 +44,7 @@ public static class BrowserSupport
         return host + path + uri.Query;
     }
 
-    /// <summary>저장된 주소가 열린 탭 주소의 앞부분과 같으면 같은 페이지로 본다. 예: "youtube.com" ↔ "https://www.youtube.com/watch?v=…"</summary>
+    /// <summary>The saved address matches an open tab when it is a prefix of the tab's address. Example: "youtube.com" ↔ "https://www.youtube.com/watch?v=…"</summary>
     public static bool Matches(string saved, string candidate)
     {
         var a = Normalize(saved);
@@ -56,9 +56,9 @@ public static class BrowserSupport
         return next == '/' || next == '?' || next == '&';
     }
 
-    // ---- 활성 탭 주소 (UI 자동화)
+    // ---- active tab address (UI Automation)
 
-    /// <summary>창의 주소창에서 현재 탭의 주소를 읽는다. 못 읽으면 null.</summary>
+    /// <summary>Read the current tab's address from the window's address bar. Null when it cannot be read.</summary>
     public static string? ActiveTabUrl(IntPtr hwnd)
     {
         try
@@ -86,9 +86,9 @@ public static class BrowserSupport
             || (v.Contains('.') && !v.EndsWith(".", StringComparison.Ordinal));
     }
 
-    // ---- 새 창으로 열기
+    // ---- opening a new window
 
-    /// <summary>새 창에 URL을 연다. 창이 생기는 건 호출한 쪽에서 기다린다.</summary>
+    /// <summary>Open the URL in a new window. The caller waits for the window to appear.</summary>
     public static bool OpenInNewWindow(string appId, string url)
     {
         var exe = AppIdentity.ExePathOf(appId);

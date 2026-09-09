@@ -1,4 +1,4 @@
-"""현재 창 수집 (X11 + 앱 식별 + 모니터)"""
+"""Collect the current windows (X11 + app identity + monitors)."""
 from __future__ import annotations
 
 from . import apps, browser
@@ -17,20 +17,20 @@ def _identify(w) -> None:
 
 
 def current_windows(x: X11) -> list:
-    """저장용: 지금 데스크톱에 보이는 창들 (최소화 제외), 앞→뒤 순서"""
+    """For saving: windows visible on the current desktop (minimized excluded), front to back."""
     config = x.monitors()
     result = []
     for w in x.list_windows(include_minimized=False, current_desktop_only=True):
         _identify(w)
         d = config.display_containing(w.frame.mid_x, w.frame.mid_y) or config.display_containing(w.frame.x, w.frame.y)
         w.display_id = d.id if d else None
-        w.url = None   # Linux에서는 활성 탭 주소를 읽을 표준 방법이 없다
+        w.url = None   # Linux has no standard way to read the active tab's address
         result.append(w)
     return result
 
 
 def windows_of(x: X11, app_id: str) -> list:
-    """적용용: 이 앱의 창들 (최소화·다른 데스크톱 포함)"""
+    """For applying: this app's windows (including minimized ones and other desktops)."""
     result = []
     for w in x.list_windows(include_minimized=True, current_desktop_only=False):
         _identify(w)

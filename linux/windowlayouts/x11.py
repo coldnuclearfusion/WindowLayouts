@@ -1,4 +1,4 @@
-"""X11(EWMH)로 창을 읽고 옮기는 부분. 스레드마다 별도의 X11 객체를 만들어 쓴다."""
+"""Reading and moving windows through X11 (EWMH). Create a separate X11 object per thread."""
 from __future__ import annotations
 
 import time
@@ -62,10 +62,10 @@ class X11:
     def window(self, wid: int):
         return self.d.create_resource_object("window", wid)
 
-    # ---- 창 목록
+    # ---- window list
 
     def stacking(self) -> list:
-        """아래→위 순서의 창 ID 목록"""
+        """Window IDs in bottom-to-top order."""
         v = self._prop(self.root, "_NET_CLIENT_LIST_STACKING", Xatom.WINDOW)
         return list(v) if v is not None else []
 
@@ -81,7 +81,7 @@ class X11:
             return False
 
     def list_windows(self, include_minimized: bool, current_desktop_only: bool) -> list:
-        """앞→뒤 순서의 일반 창 목록"""
+        """Normal windows in front-to-back order."""
         result = []
         cur = self.current_desktop() if current_desktop_only else None
         for wid in reversed(self.stacking()):
@@ -138,7 +138,7 @@ class X11:
         return 0, 0, 0, 0
 
     def frame(self, wid: int) -> Optional[Frame]:
-        """창틀(장식) 포함 사각형"""
+        """Rectangle including the window-manager frame (decorations)."""
         w = self.window(wid)
         try:
             g = w.get_geometry()
@@ -148,7 +148,7 @@ class X11:
         except error.XError:
             return None
 
-    # ---- 창 조작
+    # ---- window control
 
     def _send(self, wid: int, name: str, data: list) -> None:
         w = self.window(wid)
@@ -170,11 +170,11 @@ class X11:
         return self.atom("_NET_WM_STATE_HIDDEN") in states
 
     def activate(self, wid: int) -> None:
-        """앞으로 올리고 포커스 (최소화도 풀린다)"""
+        """Raise and focus (also unminimizes)."""
         self._send(wid, "_NET_ACTIVE_WINDOW", [2, X.CurrentTime, 0])
 
     def move_resize(self, wid: int, frame: Frame) -> None:
-        """창틀 왼쪽 위를 (x, y)에, 창틀 포함 크기가 (w, h)가 되도록 요청 (NorthWest 중력)"""
+        """Ask for the frame's top-left at (x, y) and a frame size of (w, h) (NorthWest gravity)."""
         w = self.window(wid)
         l, r, t, b = self.extents(w)
         cw = max(1, int(round(frame.width)) - l - r)
@@ -183,8 +183,8 @@ class X11:
         self._send(wid, "_NET_MOVERESIZE_WINDOW", [flags, int(round(frame.x)), int(round(frame.y)), cw, ch])
 
     def place(self, wid: int, target: Frame, log=None) -> tuple:
-        """창을 옮기고 실제 결과를 읽어 확인한다. 어긋나면 그 차이만큼 보정해 다시 요청한다.
-        반환: ("placed"|"mismatch"|"failed", 실제 Frame 또는 None)"""
+        """Move the window and read the result back. If it differs, resend the request corrected by the difference.
+        Returns ("placed"|"mismatch"|"failed", actual Frame or None)."""
         if not self.is_window(wid):
             return "failed", None
         if self.is_fullscreen(wid):
@@ -217,12 +217,12 @@ class X11:
                 log(t("log.place_attempt", attempt=attempt, result=now.short()) + (" ✓" if ok else ""))
             if ok:
                 return "placed", now
-            # 창 관리자가 좌표를 해석하는 방식이 달라 어긋났으면 그 차이만큼 보정
+            # window managers interpret the reference point differently; correct by the difference
             request = Frame(request.x - (now.x - target.x), request.y - (now.y - target.y),
                             request.width - (now.width - target.width), request.height - (now.height - target.height))
         return "mismatch", now
 
-    # ---- 모니터
+    # ---- monitors
 
     def monitors(self) -> DisplayConfig:
         displays = []
@@ -256,7 +256,7 @@ class X11:
 
 
 def parse_edid(raw: bytes):
-    """EDID에서 (제조사-모델-일련번호, 모니터 이름)을 뽑는다. 실패하면 None."""
+    """Extract (vendor-model-serial, monitor name) from EDID. None on failure."""
     if len(raw) < 128 or raw[:8] != b"\x00\xff\xff\xff\xff\xff\xff\x00":
         return None
     v = (raw[8] << 8) | raw[9]

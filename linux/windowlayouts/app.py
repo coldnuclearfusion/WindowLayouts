@@ -1,4 +1,4 @@
-"""앱 전체를 묶는 객체: 저장소, 적용기, 트레이, 설정 창, 명령 처리"""
+"""Ties the app together: store, applier, tray, settings window, command handling."""
 from __future__ import annotations
 
 import threading
@@ -21,7 +21,7 @@ from .x11 import X11  # noqa: E402
 class App:
     def __init__(self) -> None:
         self.store = LayoutStore()
-        self.x = X11()                       # 메인 스레드용 X 연결
+        self.x = X11()                       # X connection for the main thread
         self.applier = Applier(self.store, self._ask_on_main)
         self.main_window = None
         self.tray = Tray(self)
@@ -32,7 +32,7 @@ class App:
         l10n.on_change(self._on_language_changed)
         applylog.write(t("log.app_start"))
 
-    # ---- 상태
+    # ---- state
 
     def current_display_config(self):
         return self.x.monitors()
@@ -46,14 +46,14 @@ class App:
                 self.main_window.rebuild_sidebar()
         return True
 
-    # ---- 동작
+    # ---- actions
 
     def apply_layout(self, layout) -> None:
         self.applier.apply_async(layout)
         self.tray.rebuild()
 
     def _ask_on_main(self, names, layout_name):
-        """작업 스레드에서 호출: 메인 스레드에서 대화상자를 띄우고 답을 기다린다"""
+        """Called from the worker thread: shows the dialog on the main thread and waits for the answer."""
         result: dict = {}
         done = threading.Event()
 
@@ -70,7 +70,7 @@ class App:
         return result.get("v", ("cancel", False))
 
     def _on_language_changed(self) -> None:
-        """언어가 바뀌면 트레이 메뉴를 다시 만들고, 열려 있는 설정 창을 새 언어로 다시 연다"""
+        """When the language changes, rebuild the tray menu and reopen the settings window in the new language."""
         self.tray.rebuild()
         if self.main_window is not None:
             old = self.main_window
@@ -86,7 +86,7 @@ class App:
         self.main_window.present()
 
     def capture_new(self) -> None:
-        request = capture.make_request(self.x)      # 메뉴를 누른 순간의 창 상태
+        request = capture.make_request(self.x)      # window state at the moment the menu was clicked
         self.show_settings()
         self._run_capture(request)
 

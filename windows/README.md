@@ -8,7 +8,7 @@ The Windows version of [WindowLayouts](../README.md): a tray app that saves wind
 
 Same feature set as the macOS app, the same UI languages (Korean, English, Japanese, Simplified Chinese, following the system language by default and selectable under *General*) and the same `layouts.json` format:
 
-- **Save the current layout** from the tray menu (*현재 창 배치 저장…*) or the **＋ 저장** button in the settings window. Pick windows per app, name the layout, optionally keep window titles and, for browsers, the page address of the active tab.
+- **Save the current layout** from the tray menu (*Save Current Windows…*) or the **＋ Save** button in the settings window. Pick windows per app, name the layout, optionally keep window titles and, for browsers, the page address of the active tab.
 - **Restore in one click** from the tray menu (left or right click). Windows are restored from minimized/maximized state, moved and resized, and raised in the saved order.
 - **Edit by hand** in the settings window (title, page address, matching mode, position, size, order) or in the JSON file, which is reloaded when it changes.
 - **Per monitor setup.** Each layout records the monitor configuration it was saved on (stable device paths from `EnumDisplayDevices`). Layouts for the current setup come first; applying one from another setup remaps windows to the monitor they were on and clamps them to the screen.
@@ -31,9 +31,9 @@ Or `dotnet build -c Release` inside `WindowLayouts\` for a plain build. No signi
 
 ## How windows are placed
 
-Coordinates are physical pixels in the virtual screen (main monitor's top-left is (0,0)). The app is declared per-monitor-DPI-aware (v2) so `GetWindowRect` and monitor rectangles are consistent across monitors with different scaling. Frames are the *visible* frame from `DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)`; the invisible resize borders are compensated when calling `SetWindowPos`. After each move the frame is read back and, if it differs, the move is retried up to three times — moving a window to a monitor with a different DPI makes many apps resize themselves once, which the second attempt corrects. Frames that still differ are reported as "요청과 다르게 놓임".
+Coordinates are physical pixels in the virtual screen (main monitor's top-left is (0,0)). The app is declared per-monitor-DPI-aware (v2) so `GetWindowRect` and monitor rectangles are consistent across monitors with different scaling. Frames are the *visible* frame from `DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)`; the invisible resize borders are compensated when calling `SetWindowPos`. After each move the frame is read back and, if it differs, the move is retried up to three times — moving a window to a monitor with a different DPI makes many apps resize themselves once, which the second attempt corrects. Frames that still differ are reported as "Placed differently than requested".
 
-Every apply is logged to `%LOCALAPPDATA%\WindowLayouts\apply.log` (*일반 설정 › 적용 로그 열기*).
+Every apply is logged to `%LOCALAPPDATA%\WindowLayouts\apply.log` (*General › Open Apply Log*).
 
 ## Data file
 

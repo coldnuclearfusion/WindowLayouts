@@ -36,21 +36,21 @@ struct ApplyReport {
     }
 }
 
-/// 저장된 배치의 창 항목들을 실제 창에 짝지어 준다.
+/// Matches saved window entries to real windows.
 enum WindowMatcher {
     static func match(entries: [WindowEntry], windows: [AXWindow]) -> [(entry: WindowEntry, window: AXWindow?)] {
         var available = windows
         var assigned: [UUID: AXWindow] = [:]
 
-        // 1) 제목이 정확히 같은 창
+        // 1) exact title match
         for e in entries where e.titleMatch != .order && !e.title.isEmpty {
             if let i = available.firstIndex(where: { $0.title == e.title }) {
                 assigned[e.id] = available.remove(at: i)
             }
         }
 
-        // 2) 비슷한 제목 (탭 제목처럼 일부만 바뀌는 경우). 점수 높은 짝부터 배정.
-        //    모든 창에 공통으로 붙는 단어(앱 이름 등)는 점수 계산에서 뺀다.
+        // 2) similar titles (for example tab titles that partly changed), best pairs first.
+        //    Words shared by all windows (such as the app name) are excluded from the score.
         let boilerplate = commonTokens(of: available.map(\.title))
         var candidates: [(entryIndex: Int, windowIndex: Int, score: Double)] = []
         for (ei, e) in entries.enumerated() where assigned[e.id] == nil && e.titleMatch != .order && !e.title.isEmpty {
@@ -69,7 +69,7 @@ enum WindowMatcher {
         }
         available = available.enumerated().filter { !usedWindows.contains($0.offset) }.map(\.element)
 
-        // 3) 남은 항목은 남은 창에 순서대로
+        // 3) remaining entries take the remaining windows in order
         for e in entries where assigned[e.id] == nil && (e.titleMatch != .title || e.title.isEmpty) {
             if !available.isEmpty { assigned[e.id] = available.removeFirst() }
         }
@@ -82,7 +82,7 @@ enum WindowMatcher {
             .filter { !$0.isEmpty })
     }
 
-    /// 두 개 이상의 창 제목 모두에 들어 있는 단어들
+    /// Words that appear in every one of two or more window titles
     static func commonTokens(of titles: [String]) -> Set<String> {
         guard titles.count >= 2 else { return [] }
         return titles.dropFirst().reduce(tokens(titles[0])) { $0.intersection(tokens($1)) }
@@ -137,24 +137,24 @@ final class LayoutApplier {
             report.notes.append(L("report.config_differs", ["saved": saved.name, "current": currentConfig.name]))
         }
         let missing = bundleIDs.filter { runningApps(bundleID: $0).isEmpty }
-        // 프로세스는 살아 있지만 창이 하나도 없는 앱 (창을 다 닫아도 앱은 남아 있는 macOS 특성)
+        // Apps whose process is alive but that have no window (macOS keeps apps running after the last window closes)
         let windowless = bundleIDs.filter { id in
             guard !missing.contains(id) else { return false }
-            // 브라우저 항목이 전부 주소를 가지고 있으면 주소로 새 창을 열 것이므로 여기서는 제외
+            // If every browser entry has an address, the addresses will open new windows, so skip here
             let appEntries = entries.filter { $0.bundleID == id }
             if BrowserSupport.isBrowser(id) && appEntries.allSatisfy(\.hasURL) { return false }
             return runningApps(bundleID: id).allSatisfy { AX.windows(for: $0).isEmpty }
         }
         let needsOpen = missing + windowless
         var skipped = Set<String>()
-        // "지금 있는 창만 배치"면 브라우저 페이지도 새 창으로 열지 않는다
+        // "Only place existing windows" also means no new windows for browser pages
         var allowNewWindows = layout.launchPolicy != .runningOnly
 
         func label(_ bundleID: String) -> String {
             layout.appName(for: bundleID) + (windowless.contains(bundleID) ? L("report.windowless_suffix") : "")
         }
 
-        // 실행 안 된 앱, 창 없는 앱 처리 (요구사항 6)
+        // Apps that aren't running or have no window (requirement 6)
         if !needsOpen.isEmpty {
             var policy = layout.launchPolicy
             if policy == .ask {
@@ -194,7 +194,7 @@ final class LayoutApplier {
             }
         }
 
-        // 앱별로 창을 짝지어 옮기기
+        // Match and move windows per app
         var placedWindows: [(entry: WindowEntry, window: AXWindow, app: NSRunningApplication)] = []
         for bundleID in bundleIDs where !skipped.contains(bundleID) {
             let apps = runningApps(bundleID: bundleID)
@@ -203,7 +203,7 @@ final class LayoutApplier {
             var appEntries = entries.filter { $0.bundleID == bundleID }
             var matches: [(entry: WindowEntry, window: AXWindow?)] = []
 
-            // 브라우저: 주소가 지정된 항목은 그 페이지 탭이 있는 창을 먼저 찾고, 없으면 새 창으로 연다
+            // Browsers: entries with an address first look for the window that has that tab, otherwise open a new window
             if BrowserSupport.isBrowser(bundleID), let app = apps.first {
                 for entry in appEntries where entry.hasURL {
                     let result = await resolveBrowserWindow(for: entry, app: app, windows: windows,
@@ -242,7 +242,7 @@ final class LayoutApplier {
             }
         }
 
-        // 배치의 창들을 다른 창들 위로 올리기 (표의 위 항목이 가장 앞)
+        // Raise the layout's windows above the others (top row ends up in front)
         if layout.raiseWindows && !placedWindows.isEmpty {
             let failures = await raise(placedWindows, order: layout.windows.map(\.id))
             if failures > 0 { report.notes.append(L("report.raise_failed", ["count": String(failures)])) }
@@ -257,10 +257,10 @@ final class LayoutApplier {
         var note: String?
     }
 
-    /// 주소가 지정된 브라우저 항목에 쓸 창을 정한다.
-    /// 1) AppleScript로 모든 탭을 뒤져 맞는 탭을 활성화 (Safari, Chrome 계열)
-    /// 2) 접근성 API로 각 창의 활성 탭 주소 확인 (Firefox 등)
-    /// 3) 없으면 새 창으로 열고 창이 생길 때까지 기다림
+    /// Pick the window for a browser entry that has an address.
+    /// 1) AppleScript: search every tab and activate the match (Safari, Chromium browsers)
+    /// 2) Accessibility: check each window's active tab address (Firefox and others)
+    /// 3) Otherwise open a new window and wait for it to appear
     @MainActor
     private func resolveBrowserWindow(for entry: WindowEntry, app: NSRunningApplication,
                                       windows: [AXWindow], allowNewWindow: Bool) async -> BrowserResolution {
@@ -281,7 +281,7 @@ final class LayoutApplier {
         } catch BrowserSupport.ScriptError.notPermitted {
             scriptingNote = L("report.automation_hint", ["app": entry.appName])
         } catch {
-            // AppleScript를 지원하지 않는 브라우저 등: 아래 접근성 경로로
+            // Browsers without AppleScript support etc.: fall through to the Accessibility path
         }
 
         for w in windows {
@@ -308,15 +308,15 @@ final class LayoutApplier {
                                  note: L("report.new_window_timeout", ["app": entry.appName, "url": url]))
     }
 
-    /// 앱 단위로 뒤에서부터 활성화하고 창을 올려서, 마지막에 첫 항목의 앱이 맨 앞에 오게 한다.
-    /// 앱을 먼저 활성화해야 AXRaise가 다른 앱 창보다 위로 확실히 올라간다.
+    /// Activate apps from back to front and raise their windows, so the first entry's app ends up in front.
+    /// Activating the app first makes AXRaise reliably put the window above other apps' windows.
     @MainActor
     private func raise(_ placed: [(entry: WindowEntry, window: AXWindow, app: NSRunningApplication)],
                        order: [UUID]) async -> Int {
         let position = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
         let sorted = placed.sorted { (position[$0.entry.id] ?? 0) < (position[$1.entry.id] ?? 0) }
 
-        // 앞→뒤 순서를 유지하며 앱별로 묶기 (같은 앱은 첫 등장 위치 기준)
+        // Group by app while keeping front-to-back order (an app's position is where it first appears)
         var groups: [(app: NSRunningApplication, items: [(entry: WindowEntry, window: AXWindow, app: NSRunningApplication)])] = []
         for item in sorted {
             if let i = groups.firstIndex(where: { $0.app.processIdentifier == item.app.processIdentifier }) {
@@ -342,8 +342,8 @@ final class LayoutApplier {
         return failures
     }
 
-    /// 모니터 구성이 저장 당시와 다르면, 창이 있던 모니터를 찾아 그 모니터 기준 상대 위치로 옮기고
-    /// 그 모니터가 없으면 주 화면에 놓는다. 화면 밖으로 나가지 않게 잘라 맞춘다.
+    /// If the monitor setup differs from when the layout was saved, move the window relative to the monitor it was on;
+    /// if that monitor is gone, put it on the main display. Clamp so it stays on screen.
     static func targetFrame(for entry: WindowEntry, saved: DisplayConfig?, current: DisplayConfig) -> CGRect {
         guard let saved, !saved.isIdentical(to: current), let currentMain = current.main else { return entry.frame }
         let center = CGPoint(x: entry.frame.midX, y: entry.frame.midY)
@@ -361,7 +361,7 @@ final class LayoutApplier {
         return frame
     }
 
-    /// 저장된 항목의 위치/크기를 지금 실제 창 위치로 갱신하고, 모니터 구성도 현재 것으로 바꾼 사본을 돌려준다.
+    /// Returns a copy with the saved entries updated to the current window positions and the monitor setup set to the current one.
     func refreshedFrames(_ layout: WindowLayout) -> (layout: WindowLayout, updated: Int) {
         var copy = layout
         var updated = 0
@@ -383,13 +383,13 @@ final class LayoutApplier {
         return (copy, updated)
     }
 
-    // MARK: - 앱 실행
+    // MARK: - Launching apps
 
     private func runningApps(bundleID: String) -> [NSRunningApplication] {
         NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).filter { !$0.isTerminated }
     }
 
-    /// 앱을 실행한다. 이미 실행 중인데 창이 없는 앱(reopen)이면 Dock 아이콘을 눌렀을 때처럼 새 창을 열게 한다.
+    /// Launch the app. For a running app without windows (reopen), this makes it open a window as if its Dock icon was clicked.
     private func launch(bundleID: String, reopen: Bool = false) -> Bool {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
         let config = NSWorkspace.OpenConfiguration()
@@ -398,8 +398,8 @@ final class LayoutApplier {
         return true
     }
 
-    /// 방금 실행한 앱들의 창이 생길 때까지 기다린다.
-    /// 첫 창은 최대 20초, 창이 더 필요한 경우 추가로 최대 4초.
+    /// Wait for the windows of just-launched apps to appear.
+    /// Up to 20 s for the first window, and up to 4 more seconds when more windows are needed.
     private func waitForWindows(_ needed: [String: Int]) async {
         guard !needed.isEmpty else { return }
         var pending = Set(needed.keys)
@@ -424,7 +424,7 @@ final class LayoutApplier {
         try? await Task.sleep(for: .milliseconds(500))
     }
 
-    // MARK: - 물어보기
+    // MARK: - Asking the user
 
     @MainActor
     private func askAboutMissing(_ names: [String], layoutName: String) -> MissingChoice {

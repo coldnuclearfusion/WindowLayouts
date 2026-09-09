@@ -8,7 +8,7 @@ using Microsoft.Win32;
 
 namespace WindowLayouts;
 
-/// <summary>앱별 저장 설정 (HKCU\Software\WindowLayouts)</summary>
+/// <summary>Per-app settings (HKCU\Software\WindowLayouts)</summary>
 public static class Prefs
 {
     private const string Key = @"Software\WindowLayouts";
@@ -54,7 +54,7 @@ public static class Prefs
     }
 }
 
-/// <summary>현재 열린 창 중 어떤 것을 배치에 넣을지 고르는 창</summary>
+/// <summary>Window for choosing which open windows to put into a layout</summary>
 public partial class CaptureWindow : Window
 {
     public sealed class Item : NotifyBase
@@ -93,7 +93,7 @@ public partial class CaptureWindow : Window
     private readonly List<Group> _groups = new();
     private bool IsNewLayout => _request.TargetLayoutId == null;
 
-    /// <summary>새 배치로 저장했을 때 그 배치의 ID</summary>
+    /// <summary>The id of the layout when a new one was saved</summary>
     public Guid? NewLayoutId { get; private set; }
 
     public CaptureWindow(CaptureRequest request)
@@ -115,7 +115,7 @@ public partial class CaptureWindow : Window
         TitlesBox.IsChecked = Prefs.GetBool("saveWindowTitles", true);
         UrlsBox.IsChecked = Prefs.GetBool("saveWindowURLs", true);
 
-        // 앱별로 묶기 (등장 순서 유지)
+        // group by app, keeping order of appearance
         foreach (var w in request.Windows)
         {
             var g = _groups.FirstOrDefault(x => x.Name == w.AppName && x.Windows.Count > 0 && x.Windows[0].Info.AppId == w.AppId);

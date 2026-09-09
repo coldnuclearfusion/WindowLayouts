@@ -19,8 +19,8 @@ public sealed class LayoutGroup
 }
 
 /// <summary>
-/// 배치 목록을 들고 있고 %LOCALAPPDATA%\WindowLayouts\layouts.json 에 저장한다.
-/// 파일을 직접 편집하면 자동으로 다시 읽는다. UI 스레드에서만 쓴다.
+/// Holds the layout list and saves it to %LOCALAPPDATA%\WindowLayouts\layouts.json.
+/// Reloads automatically when the file is edited by hand. UI thread only.
 /// </summary>
 public sealed class LayoutStore
 {
@@ -32,7 +32,7 @@ public sealed class LayoutStore
     public string DirectoryPath { get; }
     public string FilePath { get; }
 
-    /// <summary>목록이나 내용이 바뀌었을 때 (트레이 메뉴, 사이드바 갱신용)</summary>
+    /// <summary>Raised when the list or its contents change (tray menu and sidebar refresh)</summary>
     public event Action? Changed;
 
     private string? _lastWrittenText;
@@ -50,7 +50,7 @@ public sealed class LayoutStore
         StartWatching();
     }
 
-    // ---- 조회
+    // ---- queries
 
     public WindowLayout? Layout(Guid id) => Layouts.FirstOrDefault(l => l.Id == id);
 
@@ -60,7 +60,7 @@ public sealed class LayoutStore
         return -1;
     }
 
-    /// <summary>현재 모니터 구성에 맞는 배치(구성 무관 배치 포함)가 첫 그룹, 나머지는 구성별로 뒤에 온다.</summary>
+    /// <summary>Layouts for the current monitor setup (including "any setup" layouts) form the first group; the rest are grouped per setup.</summary>
     public List<LayoutGroup> Groups(DisplayConfig current)
     {
         var currentLayouts = new List<WindowLayout>();
@@ -91,7 +91,7 @@ public sealed class LayoutStore
         return result;
     }
 
-    // ---- 변경
+    // ---- changes
 
     public void Add(WindowLayout layout)
     {
@@ -125,7 +125,7 @@ public sealed class LayoutStore
         return copy;
     }
 
-    /// <summary>같은 그룹(ids) 안에서 배치 하나를 delta 칸 옮긴다. 전체 순서에도 반영된다.</summary>
+    /// <summary>Move one layout by delta within its group (ids); the full list order follows.</summary>
     public void MoveLayout(Guid id, int delta, List<Guid> groupIds)
     {
         int from = groupIds.IndexOf(id);
@@ -161,7 +161,7 @@ public sealed class LayoutStore
         Save();
     }
 
-    /// <summary>창 항목 하나를 위(-1)/아래(+1)로 한 칸 옮긴다. 배열 순서 = 앞뒤 쌓임 순서</summary>
+    /// <summary>Move one window entry up (-1) or down (+1). Array order = stacking order</summary>
     public void MoveEntry(Guid entryId, int delta, Guid layoutId)
     {
         var l = Layout(layoutId);
@@ -190,7 +190,7 @@ public sealed class LayoutStore
         Save();
     }
 
-    /// <summary>항목 값을 통째로 바꾼다 (현재 위치로 갱신 등)</summary>
+    /// <summary>Replace a layout wholesale (used by "update from current positions")</summary>
     public void Replace(WindowLayout updated)
     {
         int i = IndexOf(updated.Id);
@@ -200,7 +200,7 @@ public sealed class LayoutStore
         Save();
     }
 
-    // ---- 저장/읽기
+    // ---- save / load
 
     public void Reload() => Load(force: true);
 
@@ -248,7 +248,7 @@ public sealed class LayoutStore
         Changed?.Invoke();
     }
 
-    /// <summary>텍스트 편집처럼 잦은 변경은 0.5초 뒤에 한 번만 저장</summary>
+    /// <summary>Frequent changes such as text edits are saved once, 0.5 s later</summary>
     public void ScheduleSave()
     {
         if (_saveTimer == null)
@@ -260,7 +260,7 @@ public sealed class LayoutStore
         _saveTimer.Start();
     }
 
-    // ---- 변경 감지 연결 (속성이 바뀌면 자동 저장)
+    // ---- change tracking (save automatically when a property changes)
 
     private void Wire(WindowLayout layout)
     {
@@ -279,7 +279,7 @@ public sealed class LayoutStore
 
     private void OnItemChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(WindowEntry.MonitorName)) return; // 표시용 값
+        if (e.PropertyName == nameof(WindowEntry.MonitorName)) return; // display-only value
         ScheduleSave();
     }
 
@@ -289,7 +289,7 @@ public sealed class LayoutStore
         ScheduleSave();
     }
 
-    // ---- 파일 감시
+    // ---- file watching
 
     private void StartWatching()
     {

@@ -16,7 +16,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // 한 번에 하나만 실행. 두 번째 실행은 명령을 첫 인스턴스에 넘기고 끝낸다.
+        // Single instance: a second instance forwards its command to the first one and exits.
         _mutex = new Mutex(true, "Local\\WindowLayouts.SingleInstance", out bool createdNew);
         if (!createdNew)
         {
@@ -29,7 +29,7 @@ public partial class App : Application
         var store = LayoutStore.Shared;
         ApplyLog.Write(Loc.T("log.app_start"));
         _tray = new TrayIcon();
-        // 언어가 바뀌면 열려 있는 설정 창을 새 언어로 다시 만든다
+        // Recreate the open settings window in the new language when it changes
         Loc.Changed += () =>
         {
             if (Main == null) return;
@@ -42,11 +42,11 @@ public partial class App : Application
         Ipc.StartServer(HandleArgs);
         HandleArgs(e.Args);
 
-        // 저장된 배치가 하나도 없는 첫 실행에만 설정 창을 연다
+        // Open the settings window only on the first launch, when no layouts are saved yet
         if (store.Layouts.Count == 0 && !e.Args.Contains("--background")) ShowMainWindow();
     }
 
-    /// <summary>--apply "배치이름"  /  --apply UUID  /  --settings</summary>
+    /// <summary>--apply "NAME"  /  --apply UUID  /  --settings</summary>
     private static void HandleArgs(string[] args)
     {
         for (int i = 0; i < args.Length; i++)

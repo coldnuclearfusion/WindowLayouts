@@ -1,4 +1,4 @@
-"""진입점: windowlayouts [--apply 이름|ID] [--settings] [--background]"""
+"""Entry point: windowlayouts [--apply NAME|ID] [--settings] [--background]"""
 from __future__ import annotations
 
 import os
@@ -10,7 +10,7 @@ from . import paths
 
 
 def _try_forward(args: list) -> bool:
-    """이미 실행 중인 인스턴스가 있으면 명령을 넘기고 True"""
+    """If an instance is already running, forward the command to it and return True."""
     try:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.settimeout(1.0)

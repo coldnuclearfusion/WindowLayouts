@@ -1,5 +1,5 @@
-# WindowLayouts (Windows) 빌드 → %LOCALAPPDATA%\Programs\WindowLayouts 설치 → 실행
-# 필요: .NET 8 SDK (https://dotnet.microsoft.com/download)
+# Build WindowLayouts (Windows), install it to %LOCALAPPDATA%\Programs\WindowLayouts and start it.
+# Requires the .NET 8 SDK (https://dotnet.microsoft.com/download).
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
@@ -12,4 +12,4 @@ Start-Sleep -Milliseconds 500
 New-Item -ItemType Directory -Force $dest | Out-Null
 Copy-Item build\publish\* $dest -Recurse -Force
 Start-Process (Join-Path $dest "WindowLayouts.exe")
-Write-Host "설치됨: $dest"
+Write-Host "Installed: $dest"

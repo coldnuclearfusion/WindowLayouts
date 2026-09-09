@@ -1,5 +1,5 @@
-"""배치 목록 저장/읽기 (~/.config/windowlayouts/layouts.json). 파일을 직접 편집하면 자동으로 다시 읽는다.
-메인 스레드(GTK)에서만 쓴다."""
+"""Layout list persistence (~/.config/windowlayouts/layouts.json). Reloads automatically when the file is edited by hand.
+Main (GTK) thread only."""
 from __future__ import annotations
 
 import json
@@ -42,7 +42,7 @@ class LayoutStore:
         except Exception:
             self._monitor = None
 
-    # ---- 알림
+    # ---- notifications
 
     def on_change(self, cb: Callable[[], None]) -> None:
         self._listeners.append(cb)
@@ -58,7 +58,7 @@ class LayoutStore:
             except Exception:
                 pass
 
-    # ---- 조회
+    # ---- queries
 
     def layout(self, lid: str) -> Optional[WindowLayout]:
         for l in self.layouts:
@@ -81,7 +81,7 @@ class LayoutStore:
                 cur.layouts.append(l)
         return [cur] + others
 
-    # ---- 변경
+    # ---- changes
 
     def add(self, layout: WindowLayout) -> None:
         self.layouts.append(layout)
@@ -147,7 +147,7 @@ class LayoutStore:
         l.windows[idx], l.windows[j] = l.windows[j], l.windows[idx]
         self.save()
 
-    # ---- 저장/읽기
+    # ---- save / load
 
     def reload(self) -> None:
         self._load(force=True)
@@ -185,7 +185,7 @@ class LayoutStore:
         self._notify()
 
     def schedule_save(self) -> None:
-        """잦은 편집은 0.5초 뒤에 한 번만 저장"""
+        """Frequent edits are saved once, 0.5 s later."""
         if self._save_source is not None:
             GLib.source_remove(self._save_source)
         self._save_source = GLib.timeout_add(500, self._save_tick)

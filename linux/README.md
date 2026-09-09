@@ -43,7 +43,7 @@ Same feature set as the macOS app, the same UI languages (Korean, English, Japan
 
 ## How windows are placed
 
-Coordinates are root-window pixels. Frames include the window-manager decorations (`_NET_FRAME_EXTENTS`). Placement sends `_NET_MOVERESIZE_WINDOW` with north-west gravity, reads the resulting frame back and, if it differs, sends a corrected request offset by the difference (window managers interpret the reference point slightly differently), up to three times. Frames that still differ are reported as "요청과 다르게 놓임". Every apply is logged to `~/.config/windowlayouts/apply.log`.
+Coordinates are root-window pixels. Frames include the window-manager decorations (`_NET_FRAME_EXTENTS`). Placement sends `_NET_MOVERESIZE_WINDOW` with north-west gravity, reads the resulting frame back and, if it differs, sends a corrected request offset by the difference (window managers interpret the reference point slightly differently), up to three times. Frames that still differ are reported as "Placed differently than requested". Every apply is logged to `~/.config/windowlayouts/apply.log`.
 
 ## Data
 

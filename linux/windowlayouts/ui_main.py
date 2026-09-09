@@ -1,4 +1,4 @@
-"""설정 창: 왼쪽에 모니터 구성별 배치 목록, 오른쪽에 배치 편집 또는 일반 설정"""
+"""Settings window: layouts grouped by monitor setup on the left, layout editor or general settings on the right."""
 from __future__ import annotations
 
 import os
@@ -13,9 +13,9 @@ from . import applylog, l10n, paths  # noqa: E402
 from .l10n import t  # noqa: E402
 from .models import MATCH_KEYS, POLICY_KEYS, match_label, policy_label  # noqa: E402
 
-# 사이드바 열: text, sub, kind(header|empty|layout|general), layout_id, group_id, weight
+# sidebar columns: text, sub, kind(header|empty|layout|general), layout_id, group_id, weight
 S_TEXT, S_SUB, S_KIND, S_LAYOUT, S_GROUP, S_WEIGHT = range(6)
-# 창 표 열
+# window table columns
 C_ENABLED, C_APP, C_TITLE, C_URL, C_MATCH, C_MONITOR, C_X, C_Y, C_W, C_H, C_ID = range(11)
 
 AUTOSTART_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
@@ -23,7 +23,7 @@ AUTOSTART_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expandus
 
 
 def launcher_command(extra: str = "") -> str:
-    """자동 시작 항목에 쓸 실행 명령"""
+    """Command used by the autostart entry."""
     import shutil
     exe = shutil.which("windowlayouts")
     if exe:
@@ -46,7 +46,7 @@ class MainWindow(Gtk.Window):
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         self.add(paned)
 
-        # ---- 사이드바
+        # ---- sidebar
         side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         top = Gtk.Box(spacing=6)
         top.set_border_width(8)
@@ -78,7 +78,7 @@ class MainWindow(Gtk.Window):
         side.set_size_request(250, -1)
         paned.pack1(side, False, False)
 
-        # ---- 오른쪽
+        # ---- right side
         self.right = Gtk.Stack()
         paned.pack2(self.right, True, False)
 
@@ -95,7 +95,7 @@ class MainWindow(Gtk.Window):
         self.show_all()
         self._select_first_layout()
 
-    # ---- 창 닫기 = 숨기기
+    # ---- closing hides the window
 
     def _on_delete(self, *_args) -> bool:
         self.hide()
@@ -106,7 +106,7 @@ class MainWindow(Gtk.Window):
         self.app.applier.off_report(self._show_report)
         self.destroy()
 
-    # ---- 사이드바
+    # ---- sidebar
 
     def _can_select(self, selection, model, path, is_selected, *_):
         kind = model[path][S_KIND]
@@ -221,7 +221,7 @@ class MainWindow(Gtk.Window):
             elif fresh is not self.current:
                 self._show_layout(fresh)
 
-    # ---- 상세 패널
+    # ---- detail panel
 
     def _build_detail(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -267,7 +267,7 @@ class MainWindow(Gtk.Window):
         row.pack_end(change, False, False, 0)
         box.pack_start(row, False, False, 0)
 
-        # 창 표
+        # window table
         self.table_model = Gtk.ListStore(bool, str, str, str, str, str, str, str, str, str, str)
         self.table = Gtk.TreeView(model=self.table_model)
         self.table.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
@@ -410,7 +410,7 @@ class MainWindow(Gtk.Window):
         self.report_lines.set_visible(bool(report.lines))
         self.apply_button.set_sensitive(not self.app.applier.is_applying)
 
-    # ---- 편집 콜백
+    # ---- edit callbacks
 
     def _on_name_changed(self, entry) -> None:
         if self.current is None or getattr(self, "_loading", False):
@@ -520,7 +520,7 @@ class MainWindow(Gtk.Window):
             if row[C_ID] == ids[0]:
                 self.table.get_selection().select_iter(row.iter)
 
-    # ---- 일반 설정
+    # ---- general settings
 
     def _build_general(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -584,7 +584,7 @@ class MainWindow(Gtk.Window):
         return box
 
     def show_general(self) -> None:
-        """일반 설정 페이지 선택 (언어 변경 뒤 창을 다시 만들 때 사용)"""
+        """Select the general settings page (used when the window is recreated after a language change)."""
         sel = self.sidebar.get_selection()
         for row in self.side_model:
             if row[S_KIND] == "general":
@@ -596,7 +596,7 @@ class MainWindow(Gtk.Window):
             return
         code = combo.get_active_id()
         if code and code != l10n.setting():
-            l10n.set_setting(code)   # App이 이 창을 새 언어로 다시 만든다
+            l10n.set_setting(code)   # App recreates this window in the new language
 
     def _refresh_general(self) -> None:
         self._loading = True

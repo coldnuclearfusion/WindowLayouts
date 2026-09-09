@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 현재 열린 창 중 어떤 것을 배치에 넣을지 고르는 시트
+/// Sheet for choosing which open windows to put into a layout
 struct CaptureSheet: View {
     let request: CaptureRequest
 
@@ -147,8 +147,8 @@ struct CaptureSheet: View {
         )
     }
 
-    /// 앱 단위 전체 선택/해제. 계산값에 묶인 Toggle 대신 버튼을 써서
-    /// 창 하나를 해제할 때 앱 전체가 풀리던 문제를 피한다. 일부만 선택된 상태는 '−'로 표시.
+    /// Per-app select all / deselect all. Uses a button instead of a Toggle bound to a computed value,
+    /// which used to deselect the whole app when one window was unchecked. Partial selection shows as '−'.
     private func groupHeader(_ group: AppGroup) -> some View {
         let count = group.windows.filter { selected.contains($0.id) }.count
         let all = count == group.windows.count

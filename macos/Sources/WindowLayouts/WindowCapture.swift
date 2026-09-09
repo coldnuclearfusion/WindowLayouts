@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// 저장 시점에 열려 있던 창 하나
+/// One window that was open at capture time
 struct CapturedWindow: Identifiable {
     let id = UUID()
     let bundleID: String
@@ -10,10 +10,10 @@ struct CapturedWindow: Identifiable {
     let frame: CGRect
     let element: AXUIElement
     let displayID: String?
-    /// 브라우저 창이면 활성 탭의 주소
+    /// For browser windows, the active tab's address
     let url: String?
 
-    /// includeTitle이 false면 제목을 비우고 "순서만"으로 찾게 저장한다. includeURL이 false면 주소를 저장하지 않는다.
+    /// With includeTitle false the title is cleared and matching is by order only; with includeURL false the address is not saved.
     func makeEntry(includeTitle: Bool = true, includeURL: Bool = true) -> WindowEntry {
         WindowEntry(bundleID: bundleID, appName: appName,
                     title: includeTitle ? title : "",
@@ -24,7 +24,7 @@ struct CapturedWindow: Identifiable {
 }
 
 enum WindowCapture {
-    /// 현재 화면에 열려 있는 일반 창들을 앞→뒤 순서로 모은다 (최소화된 창, 이 앱 자신은 제외)
+    /// Collect the normal windows currently on screen, front to back (minimized windows and this app excluded)
     static func currentWindows() -> [CapturedWindow] {
         guard Accessibility.isTrusted else { return [] }
         let myPID = ProcessInfo.processInfo.processIdentifier
@@ -46,7 +46,7 @@ enum WindowCapture {
             }
         }
 
-        // 창 목록 API로 앞뒤 순서를 얻어 정렬 (제목은 안 쓰므로 화면 기록 권한 불필요)
+        // Sort by z-order from the window list API (titles aren't used, so no Screen Recording permission needed)
         let zOrder = onScreenWindowOrder()
         func rank(_ w: CapturedWindow, pid: pid_t) -> Int {
             zOrder.firstIndex { $0.pid == pid && $0.bounds.approximatelyEquals(w.frame) } ?? Int.max

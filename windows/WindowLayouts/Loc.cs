@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace WindowLayouts;
 
-/// <summary>다국어 문자열. 실행 파일에 포함된 strings.json(공통 파일 shared/strings.json)에서 읽는다.</summary>
+/// <summary>UI strings. Reads the strings.json embedded in the executable (a copy of the shared shared/strings.json).</summary>
 public static class Loc
 {
     public const string SystemOption = "system";
@@ -22,7 +22,7 @@ public static class Loc
     public static IReadOnlyList<(string code, string name)> Languages => _languages;
     public static string Resolved => _resolved;
 
-    /// <summary>설정값: "system" 또는 언어 코드</summary>
+    /// <summary>The setting: "system" or a language code</summary>
     public static string Setting
     {
         get => Prefs.GetString("language", SystemOption);
@@ -67,7 +67,7 @@ public static class Loc
         catch { }
     }
 
-    /// <summary>시스템 언어를 지원 언어 중 하나로 맞춘다. 중국어는 간체로 통일.</summary>
+    /// <summary>Map the system language to one of the supported languages. Chinese maps to Simplified.</summary>
     public static string Resolve(string setting)
     {
         var available = _languages.Select(l => l.code).ToList();
@@ -80,7 +80,7 @@ public static class Loc
         return available.FirstOrDefault() ?? "en";
     }
 
-    /// <summary>키에 해당하는 문자열. 인자는 ("name", 값) 쌍으로 {name} 자리에 들어간다.</summary>
+    /// <summary>The string for a key; arguments are ("name", value) pairs substituted into {name} placeholders.</summary>
     public static string T(string key, params (string name, object? value)[] args)
     {
         string text = key;

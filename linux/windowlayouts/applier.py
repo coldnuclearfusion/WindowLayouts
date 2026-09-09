@@ -1,4 +1,4 @@
-"""배치 적용: 실행 정책, 브라우저 페이지, 검증하는 배치, 앞으로 올리기. 작업 스레드에서 돈다."""
+"""Applying a layout: launch policy, browser pages, verified placement, raising. Runs on a worker thread."""
 from __future__ import annotations
 
 import threading
@@ -59,7 +59,7 @@ class ApplyReport:
 
 
 def target_frame(entry: WindowEntry, saved: Optional[DisplayConfig], current: DisplayConfig) -> Frame:
-    """모니터 구성이 저장 당시와 다르면 창이 있던 모니터 기준 상대 위치로 옮기고, 없으면 주 모니터에 놓는다."""
+    """If the monitor setup differs from when the layout was saved, move the window relative to the monitor it was on; if that monitor is gone, use the main one."""
     if saved is None or saved.is_identical(current) or current.main is None:
         return entry.frame
     sd = saved.display_with_id(entry.display_id) or saved.display_containing(entry.frame.mid_x, entry.frame.mid_y) or saved.main
@@ -76,7 +76,7 @@ def target_frame(entry: WindowEntry, saved: Optional[DisplayConfig], current: Di
 
 
 class Applier:
-    """ask_fn(names, layout_name) -> ("launch"|"skip"|"cancel", remember). 메인 스레드에서 대화상자를 띄우는 함수."""
+    """ask_fn(names, layout_name) -> ("launch"|"skip"|"cancel", remember): shows the dialog on the main thread."""
 
     def __init__(self, store, ask_fn: Callable) -> None:
         self.store = store
@@ -228,7 +228,7 @@ class Applier:
         return False
 
     def refresh_frames(self, x: X11, layout: WindowLayout) -> int:
-        """저장된 항목의 위치/크기를 지금 실제 창 위치로 갱신하고 모니터 구성도 현재 것으로 바꾼다."""
+        """Update the saved entries to the current window positions and set the monitor setup to the current one."""
         updated = 0
         config = x.monitors()
         layout.display_config = config
@@ -246,7 +246,7 @@ class Applier:
                 updated += 1
         return updated
 
-    # ---- 실행 대기
+    # ---- waiting for launched apps
 
     @staticmethod
     def _wait_for_windows(x: X11, needed: dict) -> None:
@@ -268,7 +268,7 @@ class Applier:
                     few.discard(a)
         time.sleep(0.5)
 
-    # ---- 브라우저
+    # ---- browsers
 
     @staticmethod
     def _resolve_browser_window(x: X11, entry: WindowEntry, app_id: str, windows: list, allow_new: bool) -> tuple:
@@ -290,7 +290,7 @@ class Applier:
                 return fresh, t("report.opened_new_window", app=entry.app_name, url=url, reason=t("report.reason_linux_tabs"))
         return None, t("report.new_window_timeout", app=entry.app_name, url=url)
 
-    # ---- 앞으로 올리기
+    # ---- raising
 
     @staticmethod
     def _raise(x: X11, placed: list, order: list) -> None:

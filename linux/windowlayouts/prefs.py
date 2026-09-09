@@ -1,4 +1,4 @@
-"""작은 설정값 (언어, 저장 시 제목 포함 여부 등): ~/.config/windowlayouts/prefs.json"""
+"""Small settings (language, capture options): ~/.config/windowlayouts/prefs.json"""
 from __future__ import annotations
 
 import json

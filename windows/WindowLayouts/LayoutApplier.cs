@@ -61,7 +61,7 @@ public sealed class LayoutApplier
 
     private enum MissingChoice { Launch, Skip, Cancel }
 
-    /// <summary>UI 스레드에서 호출한다 (대화상자를 띄울 수 있음).</summary>
+    /// <summary>Call on the UI thread (may show dialogs).</summary>
     public async Task Apply(WindowLayout layout)
     {
         if (IsApplying) return;
@@ -97,12 +97,12 @@ public sealed class LayoutApplier
             report.Notes.Add(Loc.T("report.config_differs", ("saved", layout.DisplayConfig.Name), ("current", currentConfig.Name)));
 
         var missing = appIds.Where(id => AppIdentity.RunningProcessIds(id).Count == 0).ToList();
-        // 프로세스는 살아 있지만(트레이 상주 등) 보이는 창이 하나도 없는 앱
+        // Apps whose process is alive (tray-resident etc.) but that have no visible window
         var windowless = appIds.Where(id =>
         {
             if (missing.Contains(id)) return false;
             var appEntries = entries.Where(e => e.BundleID == id).ToList();
-            if (BrowserSupport.IsBrowser(id) && appEntries.All(e => e.HasUrl)) return false; // 주소로 새 창을 열 것
+            if (BrowserSupport.IsBrowser(id) && appEntries.All(e => e.HasUrl)) return false; // the addresses will open new windows
             return WindowCapture.WindowsOf(id).Count == 0;
         }).ToList();
         var needsOpen = missing.Concat(windowless).ToList();
@@ -163,7 +163,7 @@ public sealed class LayoutApplier
             }
         }
 
-        // 앱별로 창을 짝지어 옮기기
+        // Match and move windows per app
         var placed = new List<(WindowEntry entry, WindowInfo window)>();
         foreach (var id in appIds)
         {
@@ -172,7 +172,7 @@ public sealed class LayoutApplier
             var appEntries = entries.Where(e => e.BundleID == id).ToList();
             var matches = new List<(WindowEntry entry, WindowInfo? window)>();
 
-            // 브라우저: 주소가 지정된 항목은 그 페이지를 보여주는 창을 먼저 찾고, 없으면 새 창으로 연다
+            // Browsers: entries with an address first look for the window showing that page, otherwise open a new window
             if (BrowserSupport.IsBrowser(id))
             {
                 foreach (var entry in appEntries.Where(e => e.HasUrl).ToList())
@@ -228,8 +228,8 @@ public sealed class LayoutApplier
     }
 
     /// <summary>
-    /// 모니터 구성이 저장 당시와 다르면, 창이 있던 모니터를 찾아 그 모니터 기준 상대 위치로 옮기고
-    /// 그 모니터가 없으면 주 모니터에 놓는다. 화면 밖으로 나가지 않게 잘라 맞춘다.
+    /// If the monitor setup differs from when the layout was saved, move the window relative to the monitor it was on;
+    /// if that monitor is gone, put it on the main monitor. Clamp so it stays on screen.
     /// </summary>
     public static WinFrame TargetFrame(WindowEntry entry, DisplayConfig? saved, DisplayConfig current)
     {
@@ -249,9 +249,9 @@ public sealed class LayoutApplier
     }
 
     /// <summary>
-    /// 창을 옮기고 실제로 그렇게 됐는지 읽어서 확인한다. 안 맞으면 최대 3번 시도한다.
-    /// DPI가 다른 모니터로 옮기면 앱이 WM_DPICHANGED를 받아 크기를 다시 잡으므로 두 번째 시도에서 맞는 경우가 많다.
-    /// 좌표는 보이는 테두리 기준이라, 투명 테두리만큼 보정해서 SetWindowPos에 넘긴다.
+    /// Move the window and read back whether it actually happened; retry up to 3 times.
+    /// Moving to a monitor with a different DPI makes apps resize themselves on WM_DPICHANGED, so the second attempt usually fixes it.
+    /// Coordinates are the visible frame, so the invisible borders are compensated before calling SetWindowPos.
     /// </summary>
     public static async Task<PlaceOutcome> Place(IntPtr hwnd, WinFrame target, Action<string>? log = null)
     {
@@ -285,7 +285,7 @@ public sealed class LayoutApplier
         return new PlaceOutcome(PlaceKind.Mismatch, Native.GetExtendedFrame(hwnd));
     }
 
-    /// <summary>저장된 항목의 위치/크기를 지금 실제 창 위치로 갱신하고, 모니터 구성도 현재 것으로 바꾼다. 갱신된 창 수를 돌려준다.</summary>
+    /// <summary>Update the saved entries to the current window positions and set the monitor setup to the current one. Returns the number of updated windows.</summary>
     public int RefreshFrames(WindowLayout layout)
     {
         int updated = 0;
@@ -305,7 +305,7 @@ public sealed class LayoutApplier
         return updated;
     }
 
-    // ---- 실행 대기
+    // ---- waiting for launched apps
 
     private static async Task WaitForWindows(Dictionary<string, int> needed)
     {
@@ -329,7 +329,7 @@ public sealed class LayoutApplier
         await Task.Delay(500);
     }
 
-    // ---- 브라우저
+    // ---- browsers
 
     private static async Task<(WindowInfo? window, string? note)> ResolveBrowserWindow(
         WindowEntry entry, string appId, List<WindowInfo> windows, bool allowNewWindow)
@@ -359,9 +359,9 @@ public sealed class LayoutApplier
         return (null, Loc.T("report.new_window_timeout", ("app", entry.AppName), ("url", url)));
     }
 
-    // ---- 앞으로 올리기
+    // ---- raising
 
-    /// <summary>앱 단위로 뒤에서부터 창을 올려서, 마지막에 첫 항목이 맨 앞에 오게 한다.</summary>
+    /// <summary>Raise windows app by app from back to front, so the first entry ends up in front.</summary>
     private static async Task<int> Raise(List<(WindowEntry entry, WindowInfo window)> placed, List<Guid> order)
     {
         var position = new Dictionary<Guid, int>();
@@ -391,7 +391,7 @@ public sealed class LayoutApplier
         return failures;
     }
 
-    /// <summary>다른 프로세스 창에 포커스를 주기 위한 관용구 (포그라운드 잠금 우회)</summary>
+    /// <summary>The usual trick for giving focus to another process's window (works around the foreground lock)</summary>
     private static void ForceForeground(IntPtr hwnd)
     {
         try
@@ -409,7 +409,7 @@ public sealed class LayoutApplier
         catch { }
     }
 
-    // ---- 물어보기
+    // ---- asking the user
 
     private static (MissingChoice choice, bool remember) AskAboutMissing(List<string> names, string layoutName)
     {

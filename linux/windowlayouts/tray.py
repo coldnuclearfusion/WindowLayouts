@@ -1,4 +1,4 @@
-"""트레이 아이콘과 메뉴. AppIndicator가 있으면 그것을, 없으면 Gtk.StatusIcon을 쓴다."""
+"""Tray icon and menu. Uses AppIndicator when available, otherwise Gtk.StatusIcon."""
 from __future__ import annotations
 
 import gi

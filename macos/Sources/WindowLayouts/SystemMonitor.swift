@@ -3,7 +3,7 @@ import ApplicationServices
 import Observation
 
 extension DisplayConfig {
-    /// 지금 연결된 모니터 구성 (AX 좌표계: 주 화면 왼쪽 위가 (0,0), 아래로 y 증가)
+    /// The currently connected monitors (AX coordinates: main display's top-left is (0,0), y grows downward)
     static func current() -> DisplayConfig {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return DisplayConfig(displays: []) }
@@ -28,7 +28,7 @@ extension DisplayConfig {
     }
 }
 
-/// 손쉬운 사용 권한과 모니터 연결 상태를 감시해서 UI가 즉시 따라오게 한다.
+/// Watches the Accessibility permission and the display configuration so the UI follows immediately.
 @Observable
 final class SystemMonitor {
     static let shared = SystemMonitor()
@@ -40,12 +40,12 @@ final class SystemMonitor {
     @ObservationIgnored private var observers: [Any] = []
 
     init() {
-        // 메뉴가 열려 있는 동안에도 돌도록 common 모드에 등록
+        // Run in common modes so the timer keeps firing while a menu is open
         let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(t, forMode: .common)
         timer = t
 
-        // 시스템 설정에서 손쉬운 사용 목록이 바뀌면 오는 알림
+        // Posted when the Accessibility list in System Settings changes
         observers.append(DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.apple.accessibility.api"), object: nil, queue: .main
         ) { [weak self] _ in

@@ -4,7 +4,7 @@ import ApplicationServices
 enum Accessibility {
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
-    /// 시스템의 "손쉬운 사용" 허용 요청 대화상자를 띄운다 (이미 허용됐으면 아무 일도 없음)
+    /// Shows the system's Accessibility permission prompt (does nothing if already granted)
     static func promptIfNeeded() {
         let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)

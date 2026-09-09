@@ -10,7 +10,7 @@ enum SidebarItem: Hashable {
 struct CaptureRequest: Identifiable {
     let id = UUID()
     var windows: [CapturedWindow]
-    /// nil이면 새 배치로 저장, 값이 있으면 그 배치에 창 추가
+    /// nil saves a new layout; a value appends the windows to that layout
     var targetLayoutID: UUID?
     var displayConfig: DisplayConfig = .current()
 }

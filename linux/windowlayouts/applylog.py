@@ -1,4 +1,4 @@
-"""배치 적용 과정을 파일에 남긴다: ~/.config/windowlayouts/apply.log"""
+"""Writes the apply log: ~/.config/windowlayouts/apply.log"""
 from __future__ import annotations
 
 import datetime

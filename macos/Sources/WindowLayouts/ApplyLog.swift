@@ -1,6 +1,6 @@
 import Foundation
 
-/// 배치 적용 과정을 파일에 남긴다: ~/Library/Application Support/WindowLayouts/apply.log
+/// Writes the apply log: ~/Library/Application Support/WindowLayouts/apply.log
 enum ApplyLog {
     static let url = LayoutStore.shared.directoryURL.appendingPathComponent("apply.log")
     private static let maxBytes = 512 * 1024
