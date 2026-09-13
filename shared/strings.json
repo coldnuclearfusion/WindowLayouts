@@ -325,6 +325,48 @@
       "ja": "開いているウィンドウを追加…",
       "zh-Hans": "添加已打开的窗口…"
     },
+    "detail.edit": {
+      "ko": "편집",
+      "en": "Edit",
+      "ja": "編集",
+      "zh-Hans": "编辑"
+    },
+    "detail.done": {
+      "ko": "완료",
+      "en": "Done",
+      "ja": "完了",
+      "zh-Hans": "完成"
+    },
+    "detail.delete_checked": {
+      "ko": "체크한 창 삭제 ({count})",
+      "en": "Delete Checked ({count})",
+      "ja": "チェックした項目を削除 ({count})",
+      "zh-Hans": "删除已勾选 ({count})"
+    },
+    "detail.edit_hint": {
+      "ko": "삭제할 창을 체크하세요. 창 추가와 삭제는 편집 모드에서만 할 수 있습니다.",
+      "en": "Check the rows to delete. Adding and deleting windows is only available in edit mode.",
+      "ja": "削除する行にチェックを付けてください。ウィンドウの追加と削除は編集モードでのみ行えます。",
+      "zh-Hans": "勾选要删除的行。添加和删除窗口只能在编辑模式下进行。"
+    },
+    "row.enabled_help": {
+      "ko": "이 배치를 적용할 때 포함됩니다. 끄면 삭제하지 않고 이 창만 건너뜁니다.",
+      "en": "Included when this layout is applied. Switch it off to leave this window out without deleting it.",
+      "ja": "この配置を適用するときに含まれます。オフにすると、削除せずにこのウィンドウだけを除外します。",
+      "zh-Hans": "应用此布局时包含该窗口。关闭后将跳过该窗口而不删除它。"
+    },
+    "row.enabled": {
+      "ko": "활성화됨",
+      "en": "Enabled",
+      "ja": "有効",
+      "zh-Hans": "已启用"
+    },
+    "row.disabled": {
+      "ko": "비활성화됨",
+      "en": "Disabled",
+      "ja": "無効",
+      "zh-Hans": "已禁用"
+    },
     "detail.refresh": {
       "ko": "현재 위치로 갱신",
       "en": "Update from Current Positions",
@@ -336,12 +378,6 @@
       "en": "Finds the saved windows among the open ones and re-reads their position and size",
       "ja": "保存済みのウィンドウを今開いているものから探し、位置とサイズを読み直します",
       "zh-Hans": "在当前打开的窗口中找到已保存的窗口，并重新读取其位置和大小"
-    },
-    "detail.delete_selected": {
-      "ko": "선택 삭제",
-      "en": "Delete Selected",
-      "ja": "選択を削除",
-      "zh-Hans": "删除所选"
     },
     "detail.move_up_help": {
       "ko": "선택한 창을 한 칸 앞으로",
@@ -444,6 +480,18 @@
       "en": "Choose the windows to include. Click an app name to toggle all of its windows.",
       "ja": "含めるウィンドウを選んでください。アプリ名をクリックするとそのアプリのウィンドウをまとめて切り替えます。",
       "zh-Hans": "选择要包含的窗口。点击应用名可一次切换该应用的全部窗口。"
+    },
+    "capture.hint_add": {
+      "ko": "이미 이 배치에 있는 앱의 창은 체크가 해제된 채로 시작하므로 새 창만 골라 추가할 수 있습니다.",
+      "en": "Windows of apps already in this layout start unchecked, so you can add only what is new.",
+      "ja": "すでにこの配置にあるアプリのウィンドウは最初はチェックが外れているので、新しいものだけを選んで追加できます。",
+      "zh-Hans": "已在此布局中的应用的窗口默认不勾选，方便只添加新的窗口。"
+    },
+    "capture.hint_finder": {
+      "ko": "Finder는 항상 백그라운드에서 실행되므로 처음부터 체크가 해제되어 있습니다.",
+      "en": "Finder starts unchecked because it is always running in the background.",
+      "ja": "Finder は常にバックグラウンドで動いているため、最初はチェックが外れています。",
+      "zh-Hans": "Finder 始终在后台运行，因此默认不勾选。"
     },
     "capture.save_titles": {
       "ko": "창 제목도 저장 (같은 앱의 창이 여러 개일 때 구분하는 데 씀. 끄면 순서로만 찾음)",
@@ -799,6 +847,18 @@
       "ja": "Linux ではタブのアドレスを読み取れません",
       "zh-Hans": "在 Linux 上无法读取标签页地址"
     },
+    "report.reason_no_tab": {
+      "ko": "이 주소가 열린 탭이 없습니다",
+      "en": "no open tab has this address",
+      "ja": "このアドレスを開いているタブがありません",
+      "zh-Hans": "没有打开此地址的标签页"
+    },
+    "report.reason_active_only": {
+      "ko": "각 창의 활성 탭만 확인할 수 있었습니다",
+      "en": "only the active tab of each window could be checked",
+      "ja": "各ウィンドウのアクティブなタブしか確認できませんでした",
+      "zh-Hans": "只能检查每个窗口的活动标签页"
+    },
     "report.error": {
       "ko": "적용 중 오류: {error}",
       "en": "Error while applying: {error}",
@@ -882,6 +942,72 @@
       "en": "[{window}] assigned window '{title}'",
       "ja": "[{window}] ウィンドウ '{title}' を割り当て",
       "zh-Hans": "[{window}] 已分配窗口 '{title}'"
+    },
+    "log.tabs_listed": {
+      "ko": "[{window}] {app}: 창 {windows}개, 탭 {tabs}개 확인",
+      "en": "[{window}] {app}: {windows} windows, {tabs} tabs listed",
+      "ja": "[{window}] {app}: ウィンドウ {windows}、タブ {tabs} を確認",
+      "zh-Hans": "[{window}] {app}：已列出 {windows} 个窗口、{tabs} 个标签页"
+    },
+    "log.tab_hit": {
+      "ko": "[{window}] 창 '{name}'의 탭 {index} ({state}) 일치: {title}",
+      "en": "[{window}] matched tab {index} ({state}) in window '{name}': {title}",
+      "ja": "[{window}] ウィンドウ '{name}' のタブ {index}（{state}）が一致: {title}",
+      "zh-Hans": "[{window}] 匹配到窗口 '{name}' 的标签页 {index}（{state}）：{title}"
+    },
+    "log.tab_active": {
+      "ko": "활성",
+      "en": "active",
+      "ja": "アクティブ",
+      "zh-Hans": "活动"
+    },
+    "log.tab_background": {
+      "ko": "뒤에 숨음",
+      "en": "background",
+      "ja": "背面",
+      "zh-Hans": "后台"
+    },
+    "log.tab_none": {
+      "ko": "[{window}] {what}과(와) 맞는 탭 없음",
+      "en": "[{window}] no tab matches {what}",
+      "ja": "[{window}] {what} に一致するタブなし",
+      "zh-Hans": "[{window}] 没有与 {what} 匹配的标签页"
+    },
+    "log.tab_window_unmapped": {
+      "ko": "[{window}] 브라우저 창 '{name}'을(를) 손쉬운 사용 창 목록에서 찾지 못함 (후보 {count}개)",
+      "en": "[{window}] could not find the browser window '{name}' among the Accessibility windows ({count} candidates)",
+      "ja": "[{window}] ブラウザウィンドウ '{name}' をアクセシビリティのウィンドウ一覧で見つけられません（候補 {count}）",
+      "zh-Hans": "[{window}] 在辅助功能窗口列表中找不到浏览器窗口 '{name}'（候选 {count} 个）"
+    },
+    "log.script_failed": {
+      "ko": "[{window}] AppleScript 탭 검색 실패: {error}",
+      "en": "[{window}] tab search via AppleScript failed: {error}",
+      "ja": "[{window}] AppleScript によるタブ検索に失敗: {error}",
+      "zh-Hans": "[{window}] 通过 AppleScript 搜索标签页失败：{error}"
+    },
+    "log.script_not_permitted": {
+      "ko": "[{window}] {app} 자동화 권한이 없어 활성 탭만 확인함",
+      "en": "[{window}] no Automation permission for {app}; only active tabs were checked",
+      "ja": "[{window}] {app} のオートメーション権限がないため、アクティブなタブのみ確認",
+      "zh-Hans": "[{window}] 缺少控制 {app} 的自动化权限，只检查了活动标签页"
+    },
+    "log.active_tab_hit": {
+      "ko": "[{window}] 창 '{name}'의 활성 탭이 일치",
+      "en": "[{window}] the active tab of window '{name}' matches",
+      "ja": "[{window}] ウィンドウ '{name}' のアクティブなタブが一致",
+      "zh-Hans": "[{window}] 窗口 '{name}' 的活动标签页匹配"
+    },
+    "log.new_window": {
+      "ko": "[{window}] {url} 을(를) 새 창으로 여는 중",
+      "en": "[{window}] opening {url} in a new window",
+      "ja": "[{window}] {url} を新しいウィンドウで開いています",
+      "zh-Hans": "[{window}] 正在新窗口中打开 {url}"
+    },
+    "log.new_window_done": {
+      "ko": "[{window}] 새 창 '{name}' 나타남",
+      "en": "[{window}] new window '{name}' appeared",
+      "ja": "[{window}] 新しいウィンドウ '{name}' が表示されました",
+      "zh-Hans": "[{window}] 新窗口 '{name}' 已出现"
     },
     "log.place_start": {
       "ko": "시작 {from} → 목표 {to}",

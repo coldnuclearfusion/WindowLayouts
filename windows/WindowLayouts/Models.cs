@@ -147,6 +147,7 @@ public sealed class WindowEntry : NotifyBase
     private string? _displayID;
     private string? _url;
     private string _monitorName = "";
+    private bool _marked;
 
     [JsonPropertyName("id")] public Guid Id { get => _id; set => Set(ref _id, value); }
     /// <summary>App identifier. On Windows "exe:<full path>" or "aumid:…" for Store apps (the macOS bundle ID equivalent)</summary>
@@ -175,6 +176,9 @@ public sealed class WindowEntry : NotifyBase
 
     /// <summary>Display-only (not saved): the name of the monitor this window was on</summary>
     [JsonIgnore] public string MonitorName { get => _monitorName; set => Set(ref _monitorName, value); }
+
+    /// <summary>Display-only (not saved): checked for deletion in edit mode</summary>
+    [JsonIgnore] public bool Marked { get => _marked; set => Set(ref _marked, value); }
 
     [JsonIgnore]
     public WinFrame Frame

@@ -24,6 +24,9 @@ struct CapturedWindow: Identifiable {
 }
 
 enum WindowCapture {
+    /// Apps whose windows start unchecked in the capture sheet: Finder is effectively a background process on macOS
+    static let uncheckedByDefault: Set<String> = ["com.apple.finder"]
+
     /// Collect the normal windows currently on screen, front to back (minimized windows and this app excluded)
     static func currentWindows() -> [CapturedWindow] {
         guard Accessibility.isTrusted else { return [] }

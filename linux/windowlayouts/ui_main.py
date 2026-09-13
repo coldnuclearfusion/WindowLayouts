@@ -15,8 +15,9 @@ from .models import MATCH_KEYS, POLICY_KEYS, match_label, policy_label  # noqa: 
 
 # sidebar columns: text, sub, kind(header|empty|layout|general), layout_id, group_id, weight
 S_TEXT, S_SUB, S_KIND, S_LAYOUT, S_GROUP, S_WEIGHT = range(6)
-# window table columns
-C_ENABLED, C_APP, C_TITLE, C_URL, C_MATCH, C_MONITOR, C_X, C_Y, C_W, C_H, C_ID = range(11)
+# window table columns: mark (edit mode), enabled, enabled label, dim (row switched off), app, title, url, match,
+# monitor, x, y, w, h, id
+C_MARK, C_ENABLED, C_ENABLED_TEXT, C_DIM, C_APP, C_TITLE, C_URL, C_MATCH, C_MONITOR, C_X, C_Y, C_W, C_H, C_ID = range(14)
 
 AUTOSTART_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
                               "autostart", "windowlayouts.desktop")
@@ -268,13 +269,27 @@ class MainWindow(Gtk.Window):
         box.pack_start(row, False, False, 0)
 
         # window table
-        self.table_model = Gtk.ListStore(bool, str, str, str, str, str, str, str, str, str, str)
+        self.editing = False
+        self.table_model = Gtk.ListStore(bool, bool, str, bool, str, str, str, str, str, str, str, str, str, str)
         self.table = Gtk.TreeView(model=self.table_model)
         self.table.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-        toggle = Gtk.CellRendererToggle()
-        toggle.connect("toggled", self._on_enabled_toggled)
-        self.table.append_column(Gtk.TreeViewColumn("", toggle, active=C_ENABLED))
-        self.table.append_column(Gtk.TreeViewColumn(t("column.app"), Gtk.CellRendererText(), text=C_APP))
+        # edit mode only: check the rows to delete
+        mark = Gtk.CellRendererToggle()
+        mark.connect("toggled", self._on_mark_toggled)
+        self.mark_column = Gtk.TreeViewColumn("", mark, active=C_MARK)
+        self.mark_column.set_visible(False)
+        self.table.append_column(self.mark_column)
+        # Whether the row takes part when applying. GTK has no switch cell renderer, so this is a clickable
+        # "Enabled"/"Disabled" label (a checkbox would read as "selected"); a switched-off row is dimmed.
+        enabled = Gtk.CellRendererText()
+        enabled.set_property("foreground", "gray")
+        self.enabled_column = Gtk.TreeViewColumn("", enabled, text=C_ENABLED_TEXT)
+        self.enabled_column.add_attribute(enabled, "foreground-set", C_DIM)
+        self.table.append_column(self.enabled_column)
+        self.table.connect("button-press-event", self._on_table_button)
+        self.table.set_has_tooltip(True)
+        self.table.connect("query-tooltip", self._on_table_tooltip)
+        self._plain_column(t("column.app"), C_APP)
         self._text_column(t("column.title"), C_TITLE, expand=True)
         self._text_column(t("column.url"), C_URL, expand=True)
         combo_model = Gtk.ListStore(str)
@@ -282,8 +297,11 @@ class MainWindow(Gtk.Window):
             combo_model.append([match_label(key)])
         combo = Gtk.CellRendererCombo(model=combo_model, text_column=0, has_entry=False, editable=True)
         combo.connect("edited", self._on_match_edited)
-        self.table.append_column(Gtk.TreeViewColumn(t("column.match"), combo, text=C_MATCH))
-        self.table.append_column(Gtk.TreeViewColumn(t("column.monitor"), Gtk.CellRendererText(), text=C_MONITOR))
+        combo.set_property("foreground", "gray")
+        column = Gtk.TreeViewColumn(t("column.match"), combo, text=C_MATCH)
+        column.add_attribute(combo, "foreground-set", C_DIM)
+        self.table.append_column(column)
+        self._plain_column(t("column.monitor"), C_MONITOR)
         for title, col in ((t("column.x"), C_X), (t("column.y"), C_Y), (t("column.width"), C_W), (t("column.height"), C_H)):
             self._text_column(title, col)
         scroller = Gtk.ScrolledWindow()
@@ -292,18 +310,30 @@ class MainWindow(Gtk.Window):
         box.pack_start(scroller, True, True, 0)
 
         row = Gtk.Box(spacing=8)
-        for label, cb, tip in (
-            ("＋ " + t("detail.add_windows"), self._add_windows, None),
-            ("↻ " + t("detail.refresh"), self._refresh_frames, t("detail.refresh_help")),
-            (t("detail.delete_selected"), self._delete_rows, None),
-            ("▲", lambda: self._move_selected(-1), t("detail.move_up_help")),
-            ("▼", lambda: self._move_selected(+1), t("detail.move_down_help")),
+        # Edit mode shows the add/delete buttons (and the check column); normal mode the refresh/reorder buttons
+        self.edit_button = Gtk.ToggleButton(label=t("detail.edit"))
+        self.edit_button.connect("toggled", lambda b: self._set_editing(b.get_active()))
+        row.pack_start(self.edit_button, False, False, 0)
+        self.edit_buttons = []
+        self.normal_buttons = []
+        for label, cb, tip, in_edit_mode in (
+            ("＋ " + t("detail.add_windows"), self._add_windows, None, True),
+            (t("detail.delete_checked", count=0), self._delete_rows, None, True),
+            ("↻ " + t("detail.refresh"), self._refresh_frames, t("detail.refresh_help"), False),
+            ("▲", lambda: self._move_selected(-1), t("detail.move_up_help"), False),
+            ("▼", lambda: self._move_selected(+1), t("detail.move_down_help"), False),
         ):
             b = Gtk.Button(label=label)
             b.connect("clicked", lambda _b, f=cb: f())
             if tip:
                 b.set_tooltip_text(tip)
+            if in_edit_mode:
+                b.set_no_show_all(True)
+                self.edit_buttons.append(b)
+            else:
+                self.normal_buttons.append(b)
             row.pack_start(b, False, False, 0)
+        self.delete_button = self.edit_buttons[1]
         self.count_label = Gtk.Label()
         self.count_label.get_style_context().add_class("dim-label")
         row.pack_start(self.count_label, False, False, 8)
@@ -334,11 +364,20 @@ class MainWindow(Gtk.Window):
     def _text_column(self, title: str, col: int, expand: bool = False) -> None:
         r = Gtk.CellRendererText(editable=True)
         r.connect("edited", lambda _r, path, text, c=col: self._on_cell_edited(path, c, text))
+        r.set_property("foreground", "gray")
         if expand:
             r.set_property("ellipsize", Pango.EllipsizeMode.END)
         column = Gtk.TreeViewColumn(title, r, text=col)
+        column.add_attribute(r, "foreground-set", C_DIM)
         column.set_expand(expand)
         column.set_resizable(True)
+        self.table.append_column(column)
+
+    def _plain_column(self, title: str, col: int) -> None:
+        r = Gtk.CellRendererText()
+        r.set_property("foreground", "gray")
+        column = Gtk.TreeViewColumn(title, r, text=col)
+        column.add_attribute(r, "foreground-set", C_DIM)
         self.table.append_column(column)
 
     def _show_placeholder(self) -> None:
@@ -359,7 +398,7 @@ class MainWindow(Gtk.Window):
         self._loading = False
         self._refresh_display_row()
         self._refresh_table()
-        self.refresh_label.set_text("")
+        self._set_editing(False)
         self._show_report()
         self.right.set_visible_child_name("detail")
 
@@ -376,10 +415,12 @@ class MainWindow(Gtk.Window):
         cfg = self.current.display_config
         for w in self.current.windows:
             mon = cfg.display_with_id(w.display_id) if cfg else None
-            self.table_model.append([w.enabled, w.app_name, w.title, w.url or "", match_label(w.title_match),
+            self.table_model.append([False, w.enabled, t("row.enabled") if w.enabled else t("row.disabled"), not w.enabled,
+                                     w.app_name, w.title, w.url or "", match_label(w.title_match),
                                      mon.name if mon else "–", str(int(w.x)), str(int(w.y)), str(int(w.width)),
                                      str(int(w.height)), w.id])
         self.count_label.set_text(t("detail.count", count=len(self.current.windows)))
+        self._update_delete_button()
 
     def _refresh_display_row(self) -> None:
         if self.current is None:
@@ -422,7 +463,7 @@ class MainWindow(Gtk.Window):
         if self.current is None or getattr(self, "_loading", False):
             return
         key = combo.get_active_id()
-        if key in POLICY_LABELS:
+        if key in POLICY_KEYS:
             self.current.launch_policy = key
             self.store.schedule_save()
 
@@ -440,13 +481,62 @@ class MainWindow(Gtk.Window):
         self._refresh_display_row()
         self._refresh_table()
 
-    def _on_enabled_toggled(self, renderer, path) -> None:
+    def _on_table_button(self, tree, event) -> bool:
+        """A click on the enabled column flips the row between taking part and being skipped."""
+        if event.button != 1:
+            return False
+        hit = tree.get_path_at_pos(int(event.x), int(event.y))
+        if hit is None or hit[1] is not self.enabled_column:
+            return False
+        self._toggle_enabled(hit[0])
+        return True
+
+    def _on_table_tooltip(self, tree, x, y, keyboard, tooltip) -> bool:
+        bx, by = tree.convert_widget_to_bin_window_coords(x, y)
+        hit = tree.get_path_at_pos(bx, by)
+        if hit is None or hit[1] is not self.enabled_column:
+            return False
+        tooltip.set_text(t("row.enabled_help"))
+        return True
+
+    def _toggle_enabled(self, path) -> None:
         e = self._entry(path)
         if e is None:
             return
         e.enabled = not e.enabled
-        self.table_model[path][C_ENABLED] = e.enabled
+        row = self.table_model[path]
+        row[C_ENABLED] = e.enabled
+        row[C_ENABLED_TEXT] = t("row.enabled") if e.enabled else t("row.disabled")
+        row[C_DIM] = not e.enabled
         self.store.schedule_save()
+
+    # ---- edit mode (checkboxes choose rows to delete; adding and deleting rows are only available here)
+
+    def _set_editing(self, on: bool) -> None:
+        if self.edit_button.get_active() != on:
+            self.edit_button.set_active(on)   # emits "toggled", which calls this again with the new state
+            return
+        self.editing = on
+        self.edit_button.set_label(t("detail.done") if on else t("detail.edit"))
+        self.mark_column.set_visible(on)
+        for b in self.edit_buttons:
+            b.set_visible(on)
+        for b in self.normal_buttons:
+            b.set_visible(not on)
+        if not on:
+            for row in self.table_model:
+                row[C_MARK] = False
+        self.refresh_label.set_text(t("detail.edit_hint") if on else "")
+        self._update_delete_button()
+
+    def _on_mark_toggled(self, renderer, path) -> None:
+        self.table_model[path][C_MARK] = not self.table_model[path][C_MARK]
+        self._update_delete_button()
+
+    def _update_delete_button(self) -> None:
+        n = sum(1 for row in self.table_model if row[C_MARK])
+        self.delete_button.set_label(t("detail.delete_checked", count=n))
+        self.delete_button.set_sensitive(n > 0)
 
     def _on_match_edited(self, renderer, path, text) -> None:
         e = self._entry(path)
@@ -503,7 +593,7 @@ class MainWindow(Gtk.Window):
     def _delete_rows(self) -> None:
         if self.current is None:
             return
-        ids = set(self._selected_entry_ids())
+        ids = {row[C_ID] for row in self.table_model if row[C_MARK]}
         if ids:
             self.store.remove_entries(ids, self.current.id)
             self._refresh_table()

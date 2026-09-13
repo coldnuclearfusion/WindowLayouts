@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
@@ -27,6 +29,9 @@ public partial class MainWindow : Window
     public static IReadOnlyList<EnumItem<LaunchPolicy>> PolicyItems =>
         Enum.GetValues<LaunchPolicy>().Select(p => new EnumItem<LaunchPolicy>(p, p.Label())).ToList();
 
+    /// <summary>Tooltip of the on/off switch in the window table (bound with x:Static)</summary>
+    public static string EnabledHelp => Loc.T("row.enabled_help");
+
     public sealed class LanguageItem
     {
         public string Code { get; init; } = "";
@@ -45,6 +50,8 @@ public partial class MainWindow : Window
 
     private readonly ObservableCollection<SidebarItem> _sidebarItems = new();
     private WindowLayout? _current;
+    private WindowLayout? _subscribed;
+    private bool _editing;
     private bool _rebuilding;
     private bool _loadingGeneral;
 
@@ -100,7 +107,8 @@ public partial class MainWindow : Window
         AddWindowsButton.Content = "＋ " + Loc.T("detail.add_windows");
         RefreshButton.Content = "↻ " + Loc.T("detail.refresh");
         RefreshButton.ToolTip = Loc.T("detail.refresh_help");
-        DeleteRowsButton.Content = Loc.T("detail.delete_selected");
+        EditButton.Content = Loc.T("detail.edit");
+        UpdateDeleteButton();
         UpButton.ToolTip = Loc.T("detail.move_up_help");
         DownButton.ToolTip = Loc.T("detail.move_down_help");
         LanguageHeading.Text = Loc.T("general.language");
@@ -244,6 +252,8 @@ public partial class MainWindow : Window
     private void ShowLayout(WindowLayout layout)
     {
         _current = layout;
+        Subscribe(layout);
+        if (_editing) { EditButton.IsChecked = false; SetEditing(false); }
         DetailPanel.DataContext = layout;
         Placeholder.Visibility = Visibility.Collapsed;
         GeneralPanel.Visibility = Visibility.Collapsed;
@@ -286,6 +296,58 @@ public partial class MainWindow : Window
     {
         if (_current == null) return;
         CountText.Text = Loc.T("detail.count", ("count", _current.Windows.Count));
+    }
+
+    // ---- edit mode (checkboxes choose rows to delete; adding and deleting rows are only available here)
+
+    private void Subscribe(WindowLayout layout)
+    {
+        if (ReferenceEquals(_subscribed, layout)) return;
+        if (_subscribed != null)
+        {
+            _subscribed.Windows.CollectionChanged -= OnWindowsChanged;
+            foreach (var w in _subscribed.Windows) w.PropertyChanged -= OnEntryChanged;
+        }
+        _subscribed = layout;
+        layout.Windows.CollectionChanged += OnWindowsChanged;
+        foreach (var w in layout.Windows) w.PropertyChanged += OnEntryChanged;
+    }
+
+    private void OnWindowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null) foreach (WindowEntry w in e.NewItems) w.PropertyChanged += OnEntryChanged;
+        if (e.OldItems != null) foreach (WindowEntry w in e.OldItems) w.PropertyChanged -= OnEntryChanged;
+        UpdateCount();
+        UpdateDeleteButton();
+    }
+
+    private void OnEntryChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(WindowEntry.Marked)) UpdateDeleteButton();
+    }
+
+    private void Edit_Click(object sender, RoutedEventArgs e) => SetEditing(EditButton.IsChecked == true);
+
+    private void SetEditing(bool on)
+    {
+        _editing = on;
+        EditButton.Content = Loc.T(on ? "detail.done" : "detail.edit");
+        ColMark.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        AddWindowsButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        DeleteRowsButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        RefreshButton.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+        UpButton.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+        DownButton.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+        RefreshText.Text = on ? Loc.T("detail.edit_hint") : "";
+        if (!on && _current != null) foreach (var w in _current.Windows) w.Marked = false;
+        UpdateDeleteButton();
+    }
+
+    private void UpdateDeleteButton()
+    {
+        int n = _current?.Windows.Count(w => w.Marked) ?? 0;
+        DeleteRowsButton.Content = Loc.T("detail.delete_checked", ("count", n));
+        DeleteRowsButton.IsEnabled = n > 0;
     }
 
     private void ShowReport()
@@ -367,7 +429,7 @@ public partial class MainWindow : Window
     private void DeleteRows_Click(object sender, RoutedEventArgs e)
     {
         if (_current == null) return;
-        var ids = WindowsGrid.SelectedItems.OfType<WindowEntry>().Select(w => w.Id).ToList();
+        var ids = _current.Windows.Where(w => w.Marked).Select(w => w.Id).ToList();
         if (ids.Count == 0) return;
         LayoutStore.Shared.RemoveEntries(ids, _current.Id);
         UpdateCount();

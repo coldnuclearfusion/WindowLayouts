@@ -29,7 +29,7 @@ The UI is available in Korean, English, Japanese and Simplified Chinese. By defa
 
 ## Quick start (macOS)
 
-Requires macOS 15 or later and Xcode or the Command Line Tools.
+Requires macOS 15 or later and Xcode (recent Command Line Tools lack the SwiftUI macro plugin; see [macos/README.md](macos/README.md)).
 
 ```bash
 git clone https://github.com/coldnuclearfusion/WindowLayouts.git

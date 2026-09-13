@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Finding a browser window by page address, or opening the page in a new window.
+/// Finding a browser window by page address or tab title, or opening a page in a new window.
 /// - Safari and Chromium browsers (Chrome/Edge/Brave/Vivaldi): AppleScript can enumerate every tab of every window,
 ///   so tabs hidden behind other tabs are found and activated (needs the Automation permission once).
 /// - Firefox and other browsers without AppleScript: only the active tab's address of each window is visible through Accessibility.
@@ -27,6 +27,14 @@ enum BrowserSupport {
     }
 
     static func isBrowser(_ bundleID: String) -> Bool { kind(of: bundleID) != nil }
+
+    /// Whether every tab of every window can be listed (AppleScript)
+    static func canListTabs(_ bundleID: String) -> Bool {
+        switch kind(of: bundleID) {
+        case .safari, .chromiumScriptable: return true
+        default: return false
+        }
+    }
 
     // MARK: - Address comparison
 
@@ -56,90 +64,165 @@ enum BrowserSupport {
         return next == "/" || next == "?" || next == "&"
     }
 
-    // MARK: - Finding tabs with AppleScript
+    // MARK: - Title comparison
 
-    struct TabHit {
-        let windowID: Int
-        let tabIndex: Int
-        let url: String
+    /// How well a saved window title describes a tab, ignoring words that belong to the browser itself
+    /// (for example "Google Chrome" in "YouTube - Google Chrome"). 1 = same words, 0.9 = one contains the other, else Jaccard overlap.
+    static func titleScore(saved: String, tabTitle: String, ignoring boilerplate: Set<String>) -> Double {
+        let a = WindowMatcher.tokens(saved).subtracting(boilerplate)
+        let b = WindowMatcher.tokens(tabTitle).subtracting(boilerplate)
+        guard !a.isEmpty, !b.isEmpty else { return 0 }
+        if a == b { return 1 }
+        if a.isSubset(of: b) || b.isSubset(of: a) { return 0.9 }
+        return Double(a.intersection(b).count) / Double(a.union(b).count)
     }
 
-    enum ScriptError: Error { case notPermitted, failed(String) }
+    /// Minimum titleScore for switching to a tab (stricter than window matching because switching tabs is visible)
+    static let titleThreshold = 0.5
 
-    /// Every tab of every window (windowID, tabIndex, url)
-    static func listTabs(app: NSRunningApplication) throws -> [TabHit] {
+    // MARK: - Listing tabs with AppleScript
+
+    struct Tab {
+        let index: Int          // 1-based, as AppleScript counts
+        let url: String
+        let title: String
+        var isActive: Bool
+    }
+
+    struct Window {
+        let id: Int
+        let name: String        // window title as the browser reports it
+        let bounds: CGRect?     // screen frame, when the browser reports one
+        var tabs: [Tab]
+
+        var activeTab: Tab? { tabs.first { $0.isActive } }
+    }
+
+    enum ScriptError: Error {
+        case notPermitted
+        case failed(String)
+
+        var message: String {
+            switch self {
+            case .notPermitted: return "not permitted (-1743)"
+            case .failed(let s): return s
+            }
+        }
+    }
+
+    /// Every window with every tab. Lines: "W<tab>id<tab>l,t,r,b<tab>name" then "T<tab>index<tab>active<tab>url<tab>title" per tab.
+    static func listWindows(app: NSRunningApplication) throws -> [Window] {
         guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID) else { return [] }
-        let source: String
+        let activeIndex: String
+        let tabTitle: String
         switch kind {
         case .safari:
-            source = """
-            tell application id "\(bundleID)"
-                set out to ""
-                repeat with w in windows
-                    set i to 0
-                    repeat with t in tabs of w
-                        set i to i + 1
-                        set out to out & (id of w) & tab & i & tab & (URL of t) & linefeed
-                    end repeat
-                end repeat
-                return out
-            end tell
-            """
+            activeIndex = "index of current tab of w"
+            tabTitle = "name of t"
         case .chromiumScriptable:
-            source = """
-            tell application id "\(bundleID)"
-                set out to ""
-                repeat with w in windows
-                    set i to 0
-                    repeat with t in tabs of w
-                        set i to i + 1
-                        set out to out & (id of w) & tab & i & tab & (URL of t) & linefeed
-                    end repeat
-                end repeat
-                return out
-            end tell
-            """
+            activeIndex = "active tab index of w"
+            tabTitle = "title of t"
         default:
             return []
         }
-        let text = try run(source)
-        return text.split(separator: "\n").compactMap { line in
-            let parts = line.split(separator: "\t", maxSplits: 2, omittingEmptySubsequences: false)
-            guard parts.count == 3, let w = Int(parts[0]), let i = Int(parts[1]) else { return nil }
-            return TabHit(windowID: w, tabIndex: i, url: String(parts[2]))
-        }
+        let source = """
+        tell application id "\(bundleID)"
+            set out to ""
+            repeat with w in windows
+                set a to 0
+                try
+                    set a to \(activeIndex)
+                end try
+                set bstr to ""
+                try
+                    set b to bounds of w
+                    set bstr to (item 1 of b as text) & "," & (item 2 of b as text) & "," & (item 3 of b as text) & "," & (item 4 of b as text)
+                end try
+                set wname to ""
+                try
+                    set wname to name of w as text
+                end try
+                set out to out & "W" & tab & (id of w as text) & tab & bstr & tab & wname & linefeed
+                set i to 0
+                repeat with t in tabs of w
+                    set i to i + 1
+                    set turl to ""
+                    try
+                        set turl to URL of t as text
+                    end try
+                    set ttitle to ""
+                    try
+                        set ttitle to \(tabTitle) as text
+                    end try
+                    set out to out & "T" & tab & i & tab & (i = a) & tab & turl & tab & ttitle & linefeed
+                end repeat
+            end repeat
+            return out
+        end tell
+        """
+        return parse(try run(source))
     }
 
-    /// Activate the tab and return its window's screen bounds
-    static func activate(_ hit: TabHit, app: NSRunningApplication) throws -> CGRect? {
-        guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID) else { return nil }
+    static func parse(_ text: String) -> [Window] {
+        var windows: [Window] = []
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            if line.hasPrefix("W\t") {
+                let parts = line.split(separator: "\t", maxSplits: 3, omittingEmptySubsequences: false)
+                guard parts.count >= 3, let id = Int(parts[1]) else { continue }
+                let numbers = parts[2].split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+                let bounds = numbers.count == 4
+                    ? CGRect(x: numbers[0], y: numbers[1], width: numbers[2] - numbers[0], height: numbers[3] - numbers[1])
+                    : nil
+                let name = parts.count > 3 ? String(parts[3]) : ""
+                windows.append(Window(id: id, name: name, bounds: bounds, tabs: []))
+            } else if line.hasPrefix("T\t"), !windows.isEmpty {
+                let parts = line.split(separator: "\t", maxSplits: 4, omittingEmptySubsequences: false)
+                guard parts.count >= 4, let index = Int(parts[1]) else { continue }
+                let title = parts.count > 4 ? String(parts[4]) : ""
+                windows[windows.count - 1].tabs.append(
+                    Tab(index: index, url: String(parts[3]), title: title, isActive: parts[2] == "true"))
+            }
+        }
+        return windows
+    }
+
+    /// Make the tab the active one of its window
+    static func activate(windowID: Int, tabIndex: Int, app: NSRunningApplication) throws {
+        guard let bundleID = app.bundleIdentifier, let kind = kind(of: bundleID) else { return }
         let source: String
         switch kind {
         case .safari:
             source = """
             tell application id "\(bundleID)"
-                set w to window id \(hit.windowID)
-                set current tab of w to tab \(hit.tabIndex) of w
-                set b to bounds of w
-                return (item 1 of b as text) & "," & (item 2 of b as text) & "," & (item 3 of b as text) & "," & (item 4 of b as text)
+                set w to window id \(windowID)
+                set current tab of w to tab \(tabIndex) of w
             end tell
             """
         case .chromiumScriptable:
             source = """
             tell application id "\(bundleID)"
-                set w to window id \(hit.windowID)
-                set active tab index of w to \(hit.tabIndex)
-                set b to bounds of w
-                return (item 1 of b as text) & "," & (item 2 of b as text) & "," & (item 3 of b as text) & "," & (item 4 of b as text)
+                set w to window id \(windowID)
+                set active tab index of w to \(tabIndex)
             end tell
             """
         default:
-            return nil
+            return
         }
-        let text = try run(source)
-        let n = text.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
-        guard n.count == 4 else { return nil }
-        return CGRect(x: n[0], y: n[1], width: n[2] - n[0], height: n[3] - n[1])
+        _ = try run(source)
+    }
+
+    /// The Accessibility window that corresponds to a scripted window: same title first, then same screen frame,
+    /// then a title that starts with the active tab's title.
+    static func axWindow(for window: Window, among candidates: [AXWindow]) -> AXWindow? {
+        let byName = window.name.isEmpty ? [] : candidates.filter { $0.title == window.name }
+        if byName.count == 1 { return byName[0] }
+        if byName.count > 1, let b = window.bounds,
+           let w = byName.first(where: { $0.frame.approximatelyEquals(b, tolerance: 4) }) { return w }
+        if let b = window.bounds, let w = candidates.first(where: { $0.frame.approximatelyEquals(b, tolerance: 4) }) { return w }
+        if let first = byName.first { return first }
+        if let active = window.activeTab, !active.title.isEmpty,
+           let w = candidates.first(where: { $0.title.hasPrefix(active.title) }) { return w }
+        return nil
     }
 
     private static func run(_ source: String) throws -> String {

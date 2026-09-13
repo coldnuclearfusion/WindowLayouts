@@ -5,6 +5,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# The SwiftUI macros (@State etc. in the macOS 26 SDK) ship only with Xcode's toolchain, not with the
+# Command Line Tools, so prefer Xcode when it is installed and no toolchain was chosen explicitly.
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+
 swift build -c release 2>&1 | grep -Ev "^\[[0-9]+/[0-9]+\]" || true
 BIN=".build/release/WindowLayouts"
 [ -x "$BIN" ] || { echo "Build failed: $BIN not found" >&2; exit 1; }
