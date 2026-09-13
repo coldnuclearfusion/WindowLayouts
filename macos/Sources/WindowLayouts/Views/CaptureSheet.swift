@@ -58,7 +58,7 @@ struct CaptureSheet: View {
             if request.windows.isEmpty {
                 emptyView
             } else {
-                Text(L("capture.hint"))
+                Text(hintText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Toggle(L("capture.save_titles"), isOn: $saveTitles)
@@ -113,11 +113,29 @@ struct CaptureSheet: View {
         .padding(20)
         .frame(minWidth: 580, idealWidth: 640, minHeight: 440, idealHeight: 540)
         .onAppear {
-            selected = Set(request.windows.map(\.id))
+            selected = Set(request.windows.filter { !startsUnchecked($0) }.map(\.id))
             if isNewLayout {
                 name = L("layout.default_name", ["n": String(store.layouts.count + 1)])
             }
         }
+    }
+
+    /// Apps that are already in the target layout start unchecked (so only new windows get added),
+    /// and so does Finder, which is always running in the background on macOS.
+    private var existingBundleIDs: Set<String> {
+        guard let target = request.targetLayoutID, let layout = store.layout(id: target) else { return [] }
+        return Set(layout.windows.map(\.bundleID))
+    }
+
+    private func startsUnchecked(_ w: CapturedWindow) -> Bool {
+        WindowCapture.uncheckedByDefault.contains(w.bundleID) || existingBundleIDs.contains(w.bundleID)
+    }
+
+    private var hintText: String {
+        var parts = [L("capture.hint")]
+        if !isNewLayout { parts.append(L("capture.hint_add")) }
+        if request.windows.contains(where: { $0.bundleID == "com.apple.finder" }) { parts.append(L("capture.hint_finder")) }
+        return parts.joined(separator: " ")
     }
 
     private var emptyView: some View {

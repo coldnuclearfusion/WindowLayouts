@@ -38,7 +38,9 @@ struct ApplyReport {
 
 /// Matches saved window entries to real windows.
 enum WindowMatcher {
-    static func match(entries: [WindowEntry], windows: [AXWindow]) -> [(entry: WindowEntry, window: AXWindow?)] {
+    /// With orderFallback false, entries whose title matches no window stay unassigned instead of taking the next window in order.
+    static func match(entries: [WindowEntry], windows: [AXWindow],
+                      orderFallback: Bool = true) -> [(entry: WindowEntry, window: AXWindow?)] {
         var available = windows
         var assigned: [UUID: AXWindow] = [:]
 
@@ -70,8 +72,10 @@ enum WindowMatcher {
         available = available.enumerated().filter { !usedWindows.contains($0.offset) }.map(\.element)
 
         // 3) remaining entries take the remaining windows in order
-        for e in entries where assigned[e.id] == nil && (e.titleMatch != .title || e.title.isEmpty) {
-            if !available.isEmpty { assigned[e.id] = available.removeFirst() }
+        if orderFallback {
+            for e in entries where assigned[e.id] == nil && (e.titleMatch != .title || e.title.isEmpty) {
+                if !available.isEmpty { assigned[e.id] = available.removeFirst() }
+            }
         }
         return entries.map { ($0, assigned[$0.id]) }
     }
@@ -203,18 +207,10 @@ final class LayoutApplier {
             var appEntries = entries.filter { $0.bundleID == bundleID }
             var matches: [(entry: WindowEntry, window: AXWindow?)] = []
 
-            // Browsers: entries with an address first look for the window that has that tab, otherwise open a new window
+            // Browsers: look through every tab (address first, then title) before falling back to plain window matching
             if BrowserSupport.isBrowser(bundleID), let app = apps.first {
-                for entry in appEntries where entry.hasURL {
-                    let result = await resolveBrowserWindow(for: entry, app: app, windows: windows,
-                                                            allowNewWindow: allowNewWindows)
-                    if let note = result.note, !report.notes.contains(note) { report.notes.append(note) }
-                    if let window = result.window {
-                        matches.append((entry, window))
-                        windows.removeAll { AX.isSame($0.element, window.element) }
-                        appEntries.removeAll { $0.id == entry.id }
-                    }
-                }
+                await resolveBrowserEntries(&appEntries, app: app, windows: &windows, matches: &matches,
+                                            allowNewWindows: allowNewWindows, report: &report)
             }
             matches += WindowMatcher.match(entries: appEntries, windows: windows)
 
@@ -252,48 +248,149 @@ final class LayoutApplier {
         lastReport = report
     }
 
-    private struct BrowserResolution {
-        var window: AXWindow?
-        var note: String?
+    /// Tab listing for one browser app while applying a layout. nil = tabs can't be listed (no AppleScript, no permission, error)
+    private struct BrowserSession {
+        var scripted: [BrowserSupport.Window]?
     }
 
-    /// Pick the window for a browser entry that has an address.
-    /// 1) AppleScript: search every tab and activate the match (Safari, Chromium browsers)
-    /// 2) Accessibility: check each window's active tab address (Firefox and others)
-    /// 3) Otherwise open a new window and wait for it to appear
+    /// Assign browser entries to windows before plain window matching:
+    /// 1) entries with an address: the window that has a tab with that address (activated if it is behind another tab),
+    ///    else the window whose active tab shows it, else a new window
+    /// 2) entries with a title: a window with that title, else the window that has a tab with that title (activated)
+    /// Entries that are still unassigned are left for the caller's WindowMatcher pass (order fallback).
     @MainActor
-    private func resolveBrowserWindow(for entry: WindowEntry, app: NSRunningApplication,
-                                      windows: [AXWindow], allowNewWindow: Bool) async -> BrowserResolution {
-        let url = (entry.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        var scriptingNote: String?
+    private func resolveBrowserEntries(_ appEntries: inout [WindowEntry], app: NSRunningApplication,
+                                       windows: inout [AXWindow],
+                                       matches: inout [(entry: WindowEntry, window: AXWindow?)],
+                                       allowNewWindows: Bool, report: inout ApplyReport) async {
+        let appName = app.localizedName ?? app.bundleIdentifier ?? ""
+        let urlEntries = appEntries.filter(\.hasURL)
+        let titledIDs = Set(appEntries.filter { !$0.hasURL && !$0.title.isEmpty && $0.titleMatch != .order }.map(\.id))
+        guard !urlEntries.isEmpty || !titledIDs.isEmpty else { return }
+        let label = (urlEntries.first ?? appEntries.first { titledIDs.contains($0.id) })?.displayName ?? appName
 
-        do {
-            let hits = try BrowserSupport.listTabs(app: app)
-            if let hit = hits.first(where: { BrowserSupport.matches(saved: url, candidate: $0.url) }),
-               let bounds = try BrowserSupport.activate(hit, app: app) {
-                let fresh = AX.windows(for: app)
-                let candidates = fresh.filter { $0.frame.approximatelyEquals(bounds, tolerance: 4) }
-                if let w = candidates.first(where: { c in windows.contains { AX.isSame($0.element, c.element) } })
-                    ?? candidates.first {
-                    return BrowserResolution(window: w, note: nil)
+        var session = BrowserSession()
+        if let bundleID = app.bundleIdentifier, BrowserSupport.canListTabs(bundleID) {
+            do {
+                let listed = try BrowserSupport.listWindows(app: app)
+                session.scripted = listed
+                ApplyLog.write(L("log.tabs_listed", ["window": label, "app": appName, "windows": String(listed.count),
+                                                     "tabs": String(listed.reduce(0) { $0 + $1.tabs.count })]))
+            } catch BrowserSupport.ScriptError.notPermitted {
+                ApplyLog.write(L("log.script_not_permitted", ["window": label, "app": appName]))
+                let note = L("report.automation_hint", ["app": appName])
+                if !report.notes.contains(note) { report.notes.append(note) }
+            } catch {
+                let message = (error as? BrowserSupport.ScriptError)?.message ?? error.localizedDescription
+                ApplyLog.write(L("log.script_failed", ["window": label, "error": message]))
+            }
+        }
+
+        func assign(_ entry: WindowEntry, _ window: AXWindow) {
+            matches.append((entry, window))
+            windows.removeAll { AX.isSame($0.element, window.element) }
+            appEntries.removeAll { $0.id == entry.id }
+        }
+
+        // 1) entries with an address
+        for entry in urlEntries {
+            let url = (entry.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            var found = await findTab(for: entry, what: url, session: &session, app: app, windows: windows) {
+                BrowserSupport.matches(saved: url, candidate: $0.url) ? 1 : 0
+            }
+            if found == nil {
+                // Without tab listing: the active tab of each window through Accessibility
+                for w in windows {
+                    if let current = AX.webURL(of: w.element), BrowserSupport.matches(saved: url, candidate: current) {
+                        ApplyLog.write(L("log.active_tab_hit", ["window": entry.displayName, "name": w.title]))
+                        found = w
+                        break
+                    }
                 }
             }
-        } catch BrowserSupport.ScriptError.notPermitted {
-            scriptingNote = L("report.automation_hint", ["app": entry.appName])
-        } catch {
-            // Browsers without AppleScript support etc.: fall through to the Accessibility path
+            if found == nil, allowNewWindows {
+                let reason = session.scripted != nil ? L("report.reason_no_tab") : L("report.reason_active_only")
+                found = await openNewWindow(url, for: entry, app: app, report: &report, reason: reason)
+            }
+            if let found { assign(entry, found) }
         }
 
-        for w in windows {
-            if let current = AX.webURL(of: w.element), BrowserSupport.matches(saved: url, candidate: current) {
-                return BrowserResolution(window: w, note: scriptingNote)
+        // 2) entries with a title: window titles first (no order fallback yet), then tabs behind other tabs
+        let titled = appEntries.filter { titledIDs.contains($0.id) }
+        for (entry, window) in WindowMatcher.match(entries: titled, windows: windows, orderFallback: false) {
+            if let window { assign(entry, window) }
+        }
+        guard session.scripted != nil else { return }
+        let boilerplate = WindowMatcher.tokens(appName).union(WindowMatcher.commonTokens(of: windows.map(\.title)))
+        for entry in appEntries.filter({ titledIDs.contains($0.id) }) {
+            let ignoring = boilerplate.union(WindowMatcher.tokens(entry.appName))
+            let found = await findTab(for: entry, what: "'\(entry.title)'", session: &session, app: app, windows: windows) {
+                let s = BrowserSupport.titleScore(saved: entry.title, tabTitle: $0.title, ignoring: ignoring)
+                return s >= BrowserSupport.titleThreshold ? s : 0
+            }
+            if let found { assign(entry, found) }
+        }
+    }
+
+    /// The best-scoring tab among the listed ones (score 0 = no match). Prefers a tab in a window that is still unassigned,
+    /// then the active tab (no switching needed). Switches to the tab and returns its Accessibility window.
+    @MainActor
+    private func findTab(for entry: WindowEntry, what: String, session: inout BrowserSession,
+                         app: NSRunningApplication, windows: [AXWindow],
+                         score: (BrowserSupport.Tab) -> Double) async -> AXWindow? {
+        guard let scripted = session.scripted else { return nil }
+        var best: (rank: (Double, Int, Int), wi: Int, ti: Int)?
+        for (wi, w) in scripted.enumerated() {
+            let unassigned = BrowserSupport.axWindow(for: w, among: windows) != nil ? 1 : 0
+            for (ti, t) in w.tabs.enumerated() {
+                let s = score(t)
+                guard s > 0 else { continue }
+                let rank = (s, unassigned, t.isActive ? 1 : 0)
+                if best == nil || rank > best!.rank { best = (rank, wi, ti) }
             }
         }
+        guard let best else {
+            ApplyLog.write(L("log.tab_none", ["window": entry.displayName, "what": what]))
+            return nil
+        }
+        let window = scripted[best.wi]
+        let tab = window.tabs[best.ti]
+        ApplyLog.write(L("log.tab_hit", ["window": entry.displayName, "name": window.name, "index": String(tab.index),
+                                         "state": tab.isActive ? L("log.tab_active") : L("log.tab_background"),
+                                         "title": tab.title]))
+        if !tab.isActive {
+            do {
+                try BrowserSupport.activate(windowID: window.id, tabIndex: tab.index, app: app)
+                for i in window.tabs.indices { session.scripted?[best.wi].tabs[i].isActive = (i == best.ti) }
+            } catch {
+                let message = (error as? BrowserSupport.ScriptError)?.message ?? error.localizedDescription
+                ApplyLog.write(L("log.script_failed", ["window": entry.displayName, "error": message]))
+            }
+        }
+        if let w = BrowserSupport.axWindow(for: window, among: windows)
+            ?? BrowserSupport.axWindow(for: window, among: AX.windows(for: app)) {
+            return w
+        }
+        // Last resort after switching: the window whose page now has the tab's address, or whose title became the tab's title
+        try? await Task.sleep(for: .milliseconds(150))
+        let fresh = AX.windows(for: app).filter { f in windows.contains { AX.isSame($0.element, f.element) } }
+        if let w = fresh.first(where: { f in
+            (!tab.url.isEmpty && AX.webURL(of: f.element).map { BrowserSupport.normalize($0) == BrowserSupport.normalize(tab.url) } == true)
+                || (!tab.title.isEmpty && f.title.hasPrefix(tab.title))
+        }) { return w }
+        ApplyLog.write(L("log.tab_window_unmapped", ["window": entry.displayName, "name": window.name, "count": String(windows.count)]))
+        return nil
+    }
 
-        guard allowNewWindow else { return BrowserResolution(window: nil, note: scriptingNote) }
+    /// Open the page in a new window and wait for it to appear
+    @MainActor
+    private func openNewWindow(_ url: String, for entry: WindowEntry, app: NSRunningApplication,
+                               report: inout ApplyReport, reason: String) async -> AXWindow? {
+        ApplyLog.write(L("log.new_window", ["window": entry.displayName, "url": url]))
         let before = AX.windows(for: app).map(\.element)
         guard BrowserSupport.openInNewWindow(url, app: app) else {
-            return BrowserResolution(window: nil, note: L("report.new_window_failed", ["app": entry.appName, "url": url]))
+            report.notes.append(L("report.new_window_failed", ["app": entry.appName, "url": url]))
+            return nil
         }
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
@@ -301,11 +398,13 @@ final class LayoutApplier {
             let now = AX.windows(for: app)
             if let fresh = now.first(where: { w in !before.contains { AX.isSame($0, w.element) } }) {
                 try? await Task.sleep(for: .milliseconds(300))
-                return BrowserResolution(window: fresh, note: scriptingNote)
+                ApplyLog.write(L("log.new_window_done", ["window": entry.displayName, "name": fresh.title]))
+                report.notes.append(L("report.opened_new_window", ["app": entry.appName, "url": url, "reason": reason]))
+                return fresh
             }
         }
-        return BrowserResolution(window: nil,
-                                 note: L("report.new_window_timeout", ["app": entry.appName, "url": url]))
+        report.notes.append(L("report.new_window_timeout", ["app": entry.appName, "url": url]))
+        return nil
     }
 
     /// Activate apps from back to front and raise their windows, so the first entry's app ends up in front.

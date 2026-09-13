@@ -129,6 +129,14 @@ public partial class CaptureWindow : Window
             item.PropertyChanged += (s, e) => { group.Refresh(); UpdateFooter(); };
             g.Windows.Add(item);
         }
+        // Apps already in the target layout start unchecked so that only new windows get added
+        if (request.TargetLayoutId is Guid targetId && LayoutStore.Shared.Layout(targetId) is WindowLayout existing)
+        {
+            var present = new HashSet<string>(existing.Windows.Select(w => w.BundleID), StringComparer.OrdinalIgnoreCase);
+            foreach (var item in _groups.SelectMany(g => g.Windows))
+                if (present.Contains(item.Info.AppId)) item.Selected = false;
+            HintText.Text += " " + Loc.T("capture.hint_add");
+        }
         GroupsList.ItemsSource = _groups;
         EmptyText.Visibility = request.Windows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         UpdateFooter();

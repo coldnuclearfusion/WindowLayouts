@@ -62,6 +62,16 @@ class CaptureDialog(Gtk.Dialog):
             child = self.model.append(groups[w.app_id], [True, False, w.title or t("capture.untitled_window"), w.frame.short(), f"w:{i}"])
             self.items[f"w:{i}"] = w
 
+        # Apps already in the target layout start unchecked so that only new windows get added
+        if not self.is_new:
+            existing = store.layout(request.target_layout_id)
+            present = {w.bundle_id for w in existing.windows} if existing else set()
+            for row in self._iter_children():
+                if self.items[row[COL_KEY]].app_id in present:
+                    row[COL_SELECTED] = False
+            self._refresh_groups()
+            hint.set_text(t("capture.hint") + " " + t("capture.hint_add"))
+
         tree = Gtk.TreeView(model=self.model)
         tree.set_headers_visible(False)
         toggle = Gtk.CellRendererToggle()

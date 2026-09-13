@@ -4,6 +4,31 @@
         xmlns:local="clr-namespace:WindowLayouts"
         Title="WindowLayouts" Width="1000" Height="640" MinWidth="900" MinHeight="520"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <!-- On/off switch for the "enabled" column (a checkbox there would read as "selected") -->
+        <Style x:Key="SwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="Track" CornerRadius="8" Background="#C4C4C4" />
+                            <Ellipse x:Name="Knob" Width="12" Height="12" Fill="White" HorizontalAlignment="Left" Margin="2,0,0,0" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="#3478F6" />
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="Knob" Property="Margin" Value="0,0,2,0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250" />
@@ -95,8 +120,37 @@
                           AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" SelectionMode="Extended" GridLinesVisibility="Horizontal"
                           RowHeight="26">
+                    <DataGrid.RowStyle>
+                        <!-- rows that are switched off are dimmed -->
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                    <Setter Property="Foreground" Value="Gray" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridCheckBoxColumn Header="" Width="30" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" />
+                        <!-- edit mode only: check the rows to delete -->
+                        <DataGridTemplateColumn x:Name="ColMark" Width="30" Visibility="Collapsed">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding Marked, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- whether the row takes part when the layout is applied -->
+                        <DataGridTemplateColumn x:Name="ColEnabled" Width="40">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ToggleButton Style="{StaticResource SwitchStyle}"
+                                                  IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
+                                                  ToolTip="{x:Static local:MainWindow.EnabledHelp}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn x:Name="ColApp" Width="120" Binding="{Binding AppName}" IsReadOnly="True" />
                         <DataGridTextColumn x:Name="ColTitle" Width="220" Binding="{Binding Title}" />
                         <DataGridTextColumn x:Name="ColUrl" Width="180" Binding="{Binding Url}" />
@@ -119,9 +173,11 @@
                 </DataGrid>
 
                 <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button x:Name="AddWindowsButton" Padding="8,3" Margin="0,0,8,0" Click="AddWindows_Click" />
+                    <!-- Edit mode shows the add/delete buttons (and the check column); normal mode the refresh/reorder buttons -->
+                    <ToggleButton x:Name="EditButton" Padding="8,3" Margin="0,0,8,0" Click="Edit_Click" />
+                    <Button x:Name="AddWindowsButton" Padding="8,3" Margin="0,0,8,0" Click="AddWindows_Click" Visibility="Collapsed" />
+                    <Button x:Name="DeleteRowsButton" Padding="8,3" Margin="0,0,8,0" Click="DeleteRows_Click" Visibility="Collapsed" />
                     <Button x:Name="RefreshButton" Padding="8,3" Margin="0,0,8,0" Click="Refresh_Click" />
-                    <Button x:Name="DeleteRowsButton" Padding="8,3" Margin="0,0,8,0" Click="DeleteRows_Click" />
                     <Button x:Name="UpButton" Content="▲" Padding="8,3" Margin="0,0,4,0" Click="MoveUp_Click" />
                     <Button x:Name="DownButton" Content="▼" Padding="8,3" Click="MoveDown_Click" />
                     <TextBlock x:Name="CountText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray" FontSize="11" />

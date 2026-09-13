@@ -8,6 +8,9 @@ struct LayoutDetailView: View {
     let layoutID: UUID
 
     @State private var selection = Set<UUID>()
+    /// Edit mode: rows can be checked for deletion and windows can be added
+    @State private var isEditing = false
+    @State private var checked = Set<UUID>()
     @State private var refreshMessage: String?
     private var applier: LayoutApplier { LayoutApplier.shared }
 
@@ -52,62 +55,131 @@ struct LayoutDetailView: View {
 
             displayConfigRow
 
-            Table(layout.windows, selection: $selection) {
-                TableColumn("") { row in
-                    Toggle("", isOn: entry(row.id).enabled).labelsHidden()
-                }
-                .width(24)
+            windowTable
 
-                TableColumn(L("column.app")) { row in
-                    Text(row.appName)
-                        .foregroundStyle(row.enabled ? .primary : .secondary)
-                }
-                .width(min: 90, ideal: 120)
+            bottomBar
 
-                TableColumn(L("column.title")) { row in
-                    TextField("", text: entry(row.id).title)
-                        .textFieldStyle(.plain)
-                }
-                .width(min: 150, ideal: 240)
-
-                TableColumn(L("column.url")) { row in
-                    TextField("", text: urlBinding(row.id))
-                        .textFieldStyle(.plain)
-                        .disabled(!BrowserSupport.isBrowser(row.bundleID))
-                        .help(BrowserSupport.isBrowser(row.bundleID) ? L("column.url_help_browser") : L("column.url_help_other"))
-                }
-                .width(min: 120, ideal: 200)
-
-                TableColumn(L("column.match")) { row in
-                    Picker("", selection: entry(row.id).titleMatch) {
-                        ForEach(TitleMatch.allCases) { m in
-                            Text(m.label).tag(m)
-                        }
-                    }
-                    .labelsHidden()
-                    .controlSize(.small)
-                }
-                .width(min: 70, ideal: 80)
-
-                TableColumn(L("column.monitor")) { row in
-                    Text(layout.displayConfig?.display(withID: row.displayID)?.name ?? "–")
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .width(min: 70, ideal: 110)
-
-                TableColumn(L("column.x")) { row in numberField(entry(row.id).x) }.width(min: 50, ideal: 60)
-                TableColumn(L("column.y")) { row in numberField(entry(row.id).y) }.width(min: 50, ideal: 60)
-                TableColumn(L("column.width")) { row in numberField(entry(row.id).width) }.width(min: 50, ideal: 60)
-                TableColumn(L("column.height")) { row in numberField(entry(row.id).height) }.width(min: 50, ideal: 60)
+            if isEditing {
+                Text(L("detail.edit_hint")).font(.caption).foregroundStyle(.secondary)
+            } else if let refreshMessage {
+                Text(refreshMessage).font(.caption).foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 10) {
+            if let report = applier.lastReport, report.layoutID == layoutID {
+                ReportView(report: report)
+            }
+        }
+        .padding(16)
+        .navigationTitle(layout.name)
+    }
+
+    // MARK: - Table
+
+    /// The switch in the first column decides whether the row takes part when the layout is applied;
+    /// a switched-off row is dimmed. In edit mode a checkbox column for choosing rows to delete comes first.
+    private var windowTable: some View {
+        Table(layout.windows, selection: $selection) {
+            if isEditing {
+                TableColumn("") { row in
+                    Toggle("", isOn: checkedBinding(row.id))
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
+                }
+                .width(24)
+            }
+
+            TableColumn("") { row in
+                Toggle("", isOn: entry(row.id).enabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
+                    .help(L("row.enabled_help"))
+            }
+            .width(34)
+
+            TableColumn(L("column.app")) { row in
+                Text(row.appName)
+                    .foregroundStyle(row.enabled ? .primary : .secondary)
+            }
+            .width(min: 90, ideal: 120)
+
+            TableColumn(L("column.title")) { row in
+                TextField("", text: entry(row.id).title)
+                    .textFieldStyle(.plain)
+                    .opacity(dim(row))
+            }
+            .width(min: 150, ideal: 240)
+
+            TableColumn(L("column.url")) { row in
+                TextField("", text: urlBinding(row.id))
+                    .textFieldStyle(.plain)
+                    .disabled(!BrowserSupport.isBrowser(row.bundleID))
+                    .help(BrowserSupport.isBrowser(row.bundleID) ? L("column.url_help_browser") : L("column.url_help_other"))
+                    .opacity(dim(row))
+            }
+            .width(min: 120, ideal: 200)
+
+            TableColumn(L("column.match")) { row in
+                Picker("", selection: entry(row.id).titleMatch) {
+                    ForEach(TitleMatch.allCases) { m in
+                        Text(m.label).tag(m)
+                    }
+                }
+                .labelsHidden()
+                .controlSize(.small)
+                .opacity(dim(row))
+            }
+            .width(min: 70, ideal: 80)
+
+            TableColumn(L("column.monitor")) { row in
+                Text(layout.displayConfig?.display(withID: row.displayID)?.name ?? "–")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .opacity(dim(row))
+            }
+            .width(min: 70, ideal: 110)
+
+            // Grouped because a table builder takes at most ten columns
+            Group {
+                TableColumn(L("column.x")) { row in numberField(entry(row.id).x).opacity(dim(row)) }.width(min: 50, ideal: 60)
+                TableColumn(L("column.y")) { row in numberField(entry(row.id).y).opacity(dim(row)) }.width(min: 50, ideal: 60)
+                TableColumn(L("column.width")) { row in numberField(entry(row.id).width).opacity(dim(row)) }.width(min: 50, ideal: 60)
+                TableColumn(L("column.height")) { row in numberField(entry(row.id).height).opacity(dim(row)) }.width(min: 50, ideal: 60)
+            }
+        }
+    }
+
+    private func dim(_ row: WindowEntry) -> Double {
+        row.enabled ? 1 : 0.4
+    }
+
+    // MARK: - Buttons
+
+    private var bottomBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                isEditing.toggle()
+                checked.removeAll()
+            } label: {
+                Label(isEditing ? L("detail.done") : L("detail.edit"),
+                      systemImage: isEditing ? "checkmark" : "pencil")
+            }
+
+            if isEditing {
                 Button {
                     appState.captureRequest = CaptureRequest(windows: WindowCapture.currentWindows(), targetLayoutID: layoutID)
                 } label: {
                     Label(L("detail.add_windows"), systemImage: "plus")
                 }
+                Button(role: .destructive) {
+                    store.removeEntries(checked, from: layoutID)
+                    selection.subtract(checked)
+                    checked.removeAll()
+                } label: {
+                    Label(L("detail.delete_checked", ["count": String(checked.count)]), systemImage: "trash")
+                }
+                .disabled(checked.isEmpty)
+            } else {
                 Button {
                     let result = applier.refreshedFrames(layout)
                     store.replace(result.layout)
@@ -116,13 +188,6 @@ struct LayoutDetailView: View {
                     Label(L("detail.refresh"), systemImage: "arrow.clockwise")
                 }
                 .help(L("detail.refresh_help"))
-                Button(role: .destructive) {
-                    store.removeEntries(selection, from: layoutID)
-                    selection.removeAll()
-                } label: {
-                    Label(L("detail.delete_selected"), systemImage: "trash")
-                }
-                .disabled(selection.isEmpty)
                 Button {
                     if let id = selection.first { store.moveEntry(id, by: -1, in: layoutID) }
                 } label: {
@@ -137,22 +202,12 @@ struct LayoutDetailView: View {
                 }
                 .help(L("detail.move_down_help"))
                 .disabled(selection.count != 1)
-                Spacer()
-                Text(L("detail.count", ["count": String(layout.windows.count)]))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-
-            if let refreshMessage {
-                Text(refreshMessage).font(.caption).foregroundStyle(.secondary)
-            }
-
-            if let report = applier.lastReport, report.layoutID == layoutID {
-                ReportView(report: report)
-            }
+            Spacer()
+            Text(L("detail.count", ["count": String(layout.windows.count)]))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .navigationTitle(layout.name)
     }
 
     private var displayConfigRow: some View {
@@ -186,6 +241,15 @@ struct LayoutDetailView: View {
             .fixedSize()
         }
         .font(.callout)
+    }
+
+    // MARK: - Bindings
+
+    private func checkedBinding(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { checked.contains(id) },
+            set: { on in if on { checked.insert(id) } else { checked.remove(id) } }
+        )
     }
 
     private func urlBinding(_ id: UUID) -> Binding<String> {
