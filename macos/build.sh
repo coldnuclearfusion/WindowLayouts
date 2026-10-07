@@ -20,8 +20,10 @@ STATUS=${PIPESTATUS[0]}
 set -e
 if [ "$STATUS" -ne 0 ]; then
   if grep -q "agreed to the Xcode license" "$LOG"; then
+    # Plain "sudo xcodebuild" fails when xcode-select points at the Command Line Tools, so name Xcode's own copy
     echo "Xcode's license has not been accepted yet (this is needed again after every Xcode update)." >&2
-    echo "Open Xcode once and agree, or run: sudo xcodebuild -license" >&2
+    echo "Open Xcode once and agree, or run:" >&2
+    echo "  sudo \"${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}/usr/bin/xcodebuild\" -license" >&2
   fi
   rm -f "$LOG"
   echo "Build failed (swift build exited with $STATUS); nothing was packaged." >&2
