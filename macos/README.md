@@ -23,7 +23,7 @@ Every apply is logged to `~/Library/Application Support/WindowLayouts/apply.log`
 
 ## Build and install
 
-Requires macOS 15 or later and Xcode. Recent Command Line Tools (Swift 6.4) do not include the SwiftUI macro plugin and fail with `plugin for module 'SwiftUIMacros' not found`; `build.sh` picks Xcode's toolchain automatically when Xcode is installed (or set `DEVELOPER_DIR` yourself). After Xcode is installed or updated, its license has to be accepted once (open Xcode and agree, or run `sudo xcodebuild -license`); until then the build stops with "You have not agreed to the Xcode license agreements", and `build.sh` says so instead of packaging an older binary.
+Requires macOS 15 or later and Xcode. Recent Command Line Tools (Swift 6.4) do not include the SwiftUI macro plugin and fail with `plugin for module 'SwiftUIMacros' not found`; `build.sh` picks Xcode's toolchain automatically when Xcode is installed (or set `DEVELOPER_DIR` yourself). After Xcode is installed or updated, its license has to be accepted once: open Xcode and agree, or run `sudo /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -license`. The full path matters when `xcode-select -p` points at the Command Line Tools, because plain `xcodebuild` then fails with "requires Xcode, but active developer directory … is a command line tools instance". Until the license is accepted the build stops with "You have not agreed to the Xcode license agreements", and `build.sh` says so instead of packaging an older binary.
 
 ```bash
 ./install.sh     # build → /Applications/WindowLayouts.app → launch
