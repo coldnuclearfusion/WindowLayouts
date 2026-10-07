@@ -5,7 +5,7 @@ The macOS version of [WindowLayouts](../README.md): a menu bar app that saves wi
 ## What it does
 
 - **Save the current layout.** Menu bar › *Save current windows…* (or the **+** button in the settings window) lists every open window grouped by app. Pick the windows to include, name the layout, save. Options: store window titles (used to tell apart several windows of one app) and, for browsers, the page address of the active tab.
-- **Restore in one click.** Layouts are listed at the top of the menu bar menu. Clicking one moves and resizes the windows, unminimizes them, and by default raises them in the saved order (top row of the table ends up in front).
+- **Restore in one click.** Layouts are listed at the top of the menu bar menu. Clicking one moves and resizes the windows, unminimizes them, and by default raises them in the saved order (top row of the table ends up in front). The layout applied last carries the menu's check mark, which is remembered across restarts; choosing the checked layout again puts its windows back in place.
 - **Edit by hand.** The settings window (*Settings…*) has a table per layout. The switch at the start of each row decides whether that window takes part when the layout is applied; a switched-off row is dimmed but kept. Title, page address, matching mode, position and size are edited in place, rows can be reordered, and positions can be re-read from the live windows. *Edit* turns on edit mode, which adds a check column for choosing rows to delete and the button for adding currently open windows; in that sheet, apps that are already in the layout start unchecked (so only new windows get added), and so does Finder, which is always running in the background. The JSON file can also be edited directly; the app reloads it when it changes.
 - **Per monitor setup.** Every layout records the display configuration it was saved on. The menu and the sidebar show layouts for the current setup first; layouts from other setups sit in a *Other setup* submenu. Applying one of those remaps each window to the display it was on (by display id) and clamps it to the screen when that display is missing. A layout can also be marked *any setup*.
 - **Multiple windows per app.** Windows are matched by exact title, then by word overlap after removing words shared by all windows of that app (for example a browser suffix), then by order. Per row you can force *title only* or *order only*.
@@ -23,7 +23,7 @@ Every apply is logged to `~/Library/Application Support/WindowLayouts/apply.log`
 
 ## Build and install
 
-Requires macOS 15 or later and Xcode. Recent Command Line Tools (Swift 6.4, macOS 26 SDK) no longer include the SwiftUI macro plugin and fail with `plugin for module 'SwiftUIMacros' not found`; `build.sh` picks Xcode's toolchain automatically when Xcode is installed (or set `DEVELOPER_DIR` yourself).
+Requires macOS 15 or later and Xcode. Recent Command Line Tools (Swift 6.4) do not include the SwiftUI macro plugin and fail with `plugin for module 'SwiftUIMacros' not found`; `build.sh` picks Xcode's toolchain automatically when Xcode is installed (or set `DEVELOPER_DIR` yourself). After Xcode is installed or updated, its license has to be accepted once (open Xcode and agree, or run `sudo xcodebuild -license`); until then the build stops with "You have not agreed to the Xcode license agreements", and `build.sh` says so instead of packaging an older binary.
 
 ```bash
 ./install.sh     # build → /Applications/WindowLayouts.app → launch

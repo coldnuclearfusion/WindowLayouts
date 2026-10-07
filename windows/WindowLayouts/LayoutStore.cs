@@ -27,7 +27,18 @@ public sealed class LayoutStore
     public static LayoutStore Shared { get; } = new();
 
     public ObservableCollection<WindowLayout> Layouts { get; } = new();
-    public Guid? LastAppliedId { get; set; }
+    private Guid? _lastAppliedId;
+
+    /// <summary>The layout applied last; it is checked in the tray menu. Kept in the registry so the check survives restarts.</summary>
+    public Guid? LastAppliedId
+    {
+        get => _lastAppliedId;
+        set
+        {
+            _lastAppliedId = value;
+            Prefs.SetString("lastAppliedLayoutId", value?.ToString() ?? "");
+        }
+    }
     public string? LoadError { get; private set; }
     public string DirectoryPath { get; }
     public string FilePath { get; }
@@ -46,6 +57,7 @@ public sealed class LayoutStore
         DirectoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WindowLayouts");
         Directory.CreateDirectory(DirectoryPath);
         FilePath = Path.Combine(DirectoryPath, "layouts.json");
+        _lastAppliedId = Guid.TryParse(Prefs.GetString("lastAppliedLayoutId", ""), out var applied) ? applied : null;
         if (File.Exists(FilePath)) Load(force: true); else Save();
         StartWatching();
     }
