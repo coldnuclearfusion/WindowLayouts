@@ -10,7 +10,7 @@ import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-from . import paths  # noqa: E402
+from . import paths, prefs  # noqa: E402
 from .l10n import t  # noqa: E402
 from .models import DisplayConfig, WindowLayout, dump_file, load_file  # noqa: E402
 
@@ -26,7 +26,7 @@ class LayoutGroup:
 class LayoutStore:
     def __init__(self) -> None:
         self.layouts: list = []
-        self.last_applied_id: Optional[str] = None
+        self._last_applied_id: Optional[str] = prefs.get("lastAppliedLayoutId", None)
         self.load_error: Optional[str] = None
         self._listeners: list = []
         self._last_written: Optional[str] = None
@@ -41,6 +41,16 @@ class LayoutStore:
             self._monitor.connect("changed", self._on_file_changed)
         except Exception:
             self._monitor = None
+
+    @property
+    def last_applied_id(self) -> Optional[str]:
+        """The layout applied last; it is checked in the tray menu. Kept in prefs.json so the check survives restarts."""
+        return self._last_applied_id
+
+    @last_applied_id.setter
+    def last_applied_id(self, value: Optional[str]) -> None:
+        self._last_applied_id = value
+        prefs.set("lastAppliedLayoutId", value)
 
     # ---- notifications
 

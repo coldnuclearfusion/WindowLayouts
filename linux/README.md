@@ -31,7 +31,7 @@ Or run from the checkout without installing: `python3 -m windowlayouts` inside `
 Same feature set as the macOS app, the same UI languages (Korean, English, Japanese, Simplified Chinese, following `LANGUAGE`/`LC_ALL`/`LANG` by default and selectable under *General*) and the same `layouts.json` format:
 
 - **Save the current layout** from the tray menu or the settings window, choosing windows per app; optionally keep window titles.
-- **Restore in one click** from the tray menu. Windows are unmaximized/unminimized, moved and resized, and raised in the saved order (the first row ends up in front and focused).
+- **Restore in one click** from the tray menu. Windows are unmaximized/unminimized, moved and resized, and raised in the saved order (the first row ends up in front and focused). The layout applied last is checked in the menu, and the check is remembered across restarts.
 - **Edit by hand** in the settings window or in the JSON file, which is reloaded when it changes. The *Enabled/Disabled* label at the start of each row (click to flip; GTK has no switch cell) decides whether the window takes part when the layout is applied, and switched-off rows are dimmed. *Edit* turns on edit mode, which adds a check column for choosing rows to delete and the button for adding open windows; in that dialog, apps already in the layout start unchecked.
 - **Per monitor setup** via RandR: each layout records the monitor configuration it was saved on (output name plus EDID vendor/model/serial when readable). Layouts for the current setup come first; applying one from another setup remaps windows to the monitor they were on.
 - **Multiple windows per app**, matched by exact title, then word overlap, then order.

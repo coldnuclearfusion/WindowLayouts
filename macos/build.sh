@@ -11,7 +11,23 @@ if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Develope
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
-swift build -c release 2>&1 | grep -Ev "^\[[0-9]+/[0-9]+\]" || true
+# Show the build output without the per-file progress lines, and stop if the build failed:
+# otherwise a binary left over from an earlier build would be packaged and installed as if it were new.
+LOG="$(mktemp -t windowlayouts-build)"
+set +e
+swift build -c release 2>&1 | tee "$LOG" | grep -Ev "^\[[0-9]+/[0-9]+\]"
+STATUS=${PIPESTATUS[0]}
+set -e
+if [ "$STATUS" -ne 0 ]; then
+  if grep -q "agreed to the Xcode license" "$LOG"; then
+    echo "Xcode's license has not been accepted yet (this is needed again after every Xcode update)." >&2
+    echo "Open Xcode once and agree, or run: sudo xcodebuild -license" >&2
+  fi
+  rm -f "$LOG"
+  echo "Build failed (swift build exited with $STATUS); nothing was packaged." >&2
+  exit 1
+fi
+rm -f "$LOG"
 BIN=".build/release/WindowLayouts"
 [ -x "$BIN" ] || { echo "Build failed: $BIN not found" >&2; exit 1; }
 

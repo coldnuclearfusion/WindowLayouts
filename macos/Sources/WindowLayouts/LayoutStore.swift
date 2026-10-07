@@ -16,8 +16,14 @@ final class LayoutStore {
     static let shared = LayoutStore()
 
     var layouts: [WindowLayout] = []
-    var lastAppliedID: UUID?
+    /// The layout applied last; it is checked in the menu bar menu.
+    /// Kept in UserDefaults so the check survives restarts and app updates.
+    var lastAppliedID: UUID? {
+        didSet { UserDefaults.standard.set(lastAppliedID?.uuidString, forKey: Self.lastAppliedKey) }
+    }
     var loadError: String?
+
+    private static let lastAppliedKey = "lastAppliedLayoutID"
 
     let directoryURL: URL
     let fileURL: URL
@@ -30,6 +36,7 @@ final class LayoutStore {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         directoryURL = base.appendingPathComponent("WindowLayouts", isDirectory: true)
         fileURL = directoryURL.appendingPathComponent("layouts.json")
+        lastAppliedID = UserDefaults.standard.string(forKey: Self.lastAppliedKey).flatMap(UUID.init(uuidString:))
         try? FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             load(force: true)
