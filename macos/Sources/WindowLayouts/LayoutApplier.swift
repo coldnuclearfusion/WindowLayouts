@@ -210,7 +210,8 @@ final class LayoutApplier {
             // Browsers: look through every tab (address first, then title) before falling back to plain window matching
             if BrowserSupport.isBrowser(bundleID), let app = apps.first {
                 await resolveBrowserEntries(&appEntries, app: app, windows: &windows, matches: &matches,
-                                            allowNewWindows: allowNewWindows, report: &report)
+                                            allowNewWindows: allowNewWindows, activateTabs: layout.activateTabs,
+                                            report: &report)
             }
             matches += WindowMatcher.match(entries: appEntries, windows: windows)
 
@@ -266,15 +267,17 @@ final class LayoutApplier {
     }
 
     /// Assign browser entries to windows before plain window matching:
-    /// 1) entries with an address: the window that has a tab with that address (activated if it is behind another tab),
-    ///    else the window whose active tab shows it, else a new window
-    /// 2) entries with a title: a window with that title, else the window that has a tab with that title (activated)
-    /// Every window goes to one entry only. Entries that are still unassigned are left for the caller's WindowMatcher pass.
+    /// 1) entries with an address: the window that has a tab with that address, else the window whose active tab shows it,
+    ///    else a new window
+    /// 2) entries with a title: a window with that title, else the window that has a tab with that title
+    /// A tab found behind another tab is switched to only when `activateTabs` (a setting of the layout) is on; either way
+    /// its window is the one that gets placed. Every window goes to one entry only. Entries that are still unassigned
+    /// are left for the caller's WindowMatcher pass.
     @MainActor
     private func resolveBrowserEntries(_ appEntries: inout [WindowEntry], app: NSRunningApplication,
                                        windows: inout [AXWindow],
                                        matches: inout [(entry: WindowEntry, window: AXWindow?)],
-                                       allowNewWindows: Bool, report: inout ApplyReport) async {
+                                       allowNewWindows: Bool, activateTabs: Bool, report: inout ApplyReport) async {
         let appName = app.localizedName ?? app.bundleIdentifier ?? ""
         let urlEntries = appEntries.filter(\.hasURL)
         let titledIDs = Set(appEntries.filter { !$0.hasURL && !$0.title.isEmpty && $0.titleMatch != .order }.map(\.id))
@@ -309,7 +312,8 @@ final class LayoutApplier {
         // 1) entries with an address
         for entry in urlEntries {
             let url = (entry.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let search = await findTab(for: entry, what: url, session: &session, app: app, windows: windows) {
+            let search = await findTab(for: entry, what: url, session: &session, app: app, windows: windows,
+                                       activateTabs: activateTabs) {
                 BrowserSupport.matches(saved: url, candidate: $0.url) ? 1 : 0
             }
             var found = search.window
@@ -343,7 +347,8 @@ final class LayoutApplier {
         guard session.scripted != nil else { return }
         for entry in appEntries.filter({ titledIDs.contains($0.id) }) {
             let ignoring = session.boilerplate.union(WindowMatcher.tokens(entry.appName))
-            let search = await findTab(for: entry, what: "'\(entry.title)'", session: &session, app: app, windows: windows) {
+            let search = await findTab(for: entry, what: "'\(entry.title)'", session: &session, app: app, windows: windows,
+                                       activateTabs: activateTabs) {
                 let s = BrowserSupport.titleScore(saved: entry.title, tabTitle: $0.title, ignoring: ignoring)
                 return s >= BrowserSupport.titleThreshold ? s : 0
             }
@@ -351,11 +356,12 @@ final class LayoutApplier {
         }
     }
 
-    /// Find the tab for an entry among the listed ones, switch to it if it is behind another tab, and return its window.
+    /// Find the tab for an entry among the listed ones and return its window. A tab behind another tab is switched to
+    /// when `activateTabs` is on, and left where it is otherwise.
     /// `windows` are the Accessibility windows no entry has taken yet; tabs in taken windows are left alone.
     @MainActor
     private func findTab(for entry: WindowEntry, what: String, session: inout BrowserSession,
-                         app: NSRunningApplication, windows: [AXWindow],
+                         app: NSRunningApplication, windows: [AXWindow], activateTabs: Bool,
                          score: (BrowserSupport.Tab) -> Double) async -> TabSearch {
         guard let scripted = session.scripted else { return TabSearch() }
         let paired = session.paired
@@ -372,19 +378,30 @@ final class LayoutApplier {
         ApplyLog.write(L("log.tab_hit", ["window": entry.displayName, "name": window.name, "index": String(tab.index),
                                          "state": tab.isActive ? L("log.tab_active") : L("log.tab_background"),
                                          "title": tab.title]))
-        if !tab.isActive {
+        let showsTab: Bool      // whether the tab is the one in view in its window from here on
+        if tab.isActive {
+            showsTab = true
+        } else if activateTabs {
             do {
                 try BrowserSupport.activate(windowID: window.id, tabIndex: tab.index, app: app)
                 for i in window.tabs.indices { session.scripted?[choice.window].tabs[i].isActive = (i == choice.tab) }
+                showsTab = true
             } catch {
                 let message = (error as? BrowserSupport.ScriptError)?.message ?? error.localizedDescription
                 ApplyLog.write(L("log.script_failed", ["window": entry.displayName, "error": message]))
                 return TabSearch()
             }
+        } else {
+            ApplyLog.write(L("log.tab_not_switched", ["window": entry.displayName]))
+            showsTab = false
         }
         if let w = paired[choice.window] { return TabSearch(window: w) }
-        // No Accessibility window was paired with this one. After switching, look among the free windows for the one
-        // that now shows the tab's address, or whose title became the tab's title.
+        // No Accessibility window was paired with this one. If the tab is in view, look among the free windows for the
+        // one that shows the tab's address, or whose title is the tab's title; a tab left behind gives nothing to go by.
+        guard showsTab else {
+            ApplyLog.write(L("log.tab_window_unmapped", ["window": entry.displayName, "name": window.name, "count": String(windows.count)]))
+            return TabSearch()
+        }
         try? await Task.sleep(for: .milliseconds(150))
         let fresh = AX.windows(for: app).filter { f in windows.contains { AX.isSame($0.element, f.element) } }
         if let w = fresh.first(where: { f in

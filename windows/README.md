@@ -42,6 +42,7 @@ Every apply is logged to `%LOCALAPPDATA%\WindowLayouts\apply.log` (*General › 
 - `bundleID` holds `exe:<full path>` for classic apps or `aumid:<AppUserModelId>` for Store apps.
 - `displayConfig.displays[].id` is the monitor's device interface path; `name` is the monitor's PnP name.
 - Coordinates are physical pixels.
+- `activateTabs` is kept in the file but has no effect: background tabs cannot be inspected on Windows.
 
 ## Layout of the source
 

@@ -215,6 +215,7 @@ public sealed class WindowLayout : NotifyBase
     private string _name = Loc.T("layout.untitled");
     private LaunchPolicy _launchPolicy = LaunchPolicy.Ask;
     private bool _raiseWindows = true;
+    private bool _activateTabs = true;
     private DisplayConfig? _displayConfig;
 
     [JsonPropertyName("id")] public Guid Id { get => _id; set => Set(ref _id, value); }
@@ -222,6 +223,9 @@ public sealed class WindowLayout : NotifyBase
     [JsonPropertyName("launchPolicy")] public LaunchPolicy LaunchPolicy { get => _launchPolicy; set => Set(ref _launchPolicy, value); }
     /// <summary>Whether to raise the layout's windows above the others when applying (earlier entries end up higher)</summary>
     [JsonPropertyName("raiseWindows")] public bool RaiseWindows { get => _raiseWindows; set => Set(ref _raiseWindows, value); }
+    /// <summary>macOS setting (switch to a page's tab when it is behind another tab). Windows cannot inspect background
+    /// tabs, so it has no effect here; it is kept so that a shared layouts.json does not lose it.</summary>
+    [JsonPropertyName("activateTabs")] public bool ActivateTabs { get => _activateTabs; set => Set(ref _activateTabs, value); }
     /// <summary>Monitor setup at save time. null means an "any setup" layout that shows under every setup</summary>
     [JsonPropertyName("displayConfig")] public DisplayConfig? DisplayConfig { get => _displayConfig; set => Set(ref _displayConfig, value); }
     [JsonPropertyName("windows")] public ObservableCollection<WindowEntry> Windows { get; set; } = new();
