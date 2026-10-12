@@ -125,7 +125,12 @@ enum BrowserSupport {
         default:
             return []
         }
+        // The separators are built from character ids before the tell block. Inside it the word "tab" belongs to the
+        // browser's own vocabulary (its tab class): `"W" & tab` yields "Wtab" there, which made every line unparseable
+        // and the tab list silently empty.
         let source = """
+        set fieldSep to (character id 9)
+        set lineSep to (character id 10)
         tell application id "\(bundleID)"
             set out to ""
             repeat with w in windows
@@ -142,7 +147,7 @@ enum BrowserSupport {
                 try
                     set wname to name of w as text
                 end try
-                set out to out & "W" & tab & (id of w as text) & tab & bstr & tab & wname & linefeed
+                set out to out & "W" & fieldSep & (id of w as text) & fieldSep & bstr & fieldSep & wname & lineSep
                 set i to 0
                 repeat with t in tabs of w
                     set i to i + 1
@@ -154,13 +159,19 @@ enum BrowserSupport {
                     try
                         set ttitle to \(tabTitle) as text
                     end try
-                    set out to out & "T" & tab & i & tab & (i = a) & tab & turl & tab & ttitle & linefeed
+                    set out to out & "T" & fieldSep & i & fieldSep & (i = a) & fieldSep & turl & fieldSep & ttitle & lineSep
                 end repeat
             end repeat
             return out
         end tell
         """
-        return parse(try run(source))
+        let text = try run(source)
+        let windows = parse(text)
+        // Output that does not parse must not pass for "no windows open"
+        if windows.isEmpty, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw ScriptError.failed("tab list could not be parsed: \(text.prefix(80))")
+        }
+        return windows
     }
 
     static func parse(_ text: String) -> [Window] {
@@ -211,18 +222,59 @@ enum BrowserSupport {
         _ = try run(source)
     }
 
-    /// The Accessibility window that corresponds to a scripted window: same title first, then same screen frame,
-    /// then a title that starts with the active tab's title.
-    static func axWindow(for window: Window, among candidates: [AXWindow]) -> AXWindow? {
-        let byName = window.name.isEmpty ? [] : candidates.filter { $0.title == window.name }
-        if byName.count == 1 { return byName[0] }
-        if byName.count > 1, let b = window.bounds,
-           let w = byName.first(where: { $0.frame.approximatelyEquals(b, tolerance: 4) }) { return w }
-        if let b = window.bounds, let w = candidates.first(where: { $0.frame.approximatelyEquals(b, tolerance: 4) }) { return w }
-        if let first = byName.first { return first }
-        if let active = window.activeTab, !active.title.isEmpty,
-           let w = candidates.first(where: { $0.title.hasPrefix(active.title) }) { return w }
-        return nil
+    /// Pair each scripted window with its Accessibility window, one to one (scripted index → window).
+    /// The browser's window name is no use for this: Chrome shortens long titles with "…", and the Accessibility
+    /// title carries suffixes such as " - Chrome - <profile>". So the screen frame decides, and the active tab's
+    /// title tells apart windows that share a frame (or report none). Done once, before any tab is switched.
+    static func pair(_ scripted: [Window], with axWindows: [AXWindow]) -> [Int: AXWindow] {
+        var candidates: [(score: Int, si: Int, ai: Int)] = []
+        for (si, w) in scripted.enumerated() {
+            for (ai, ax) in axWindows.enumerated() {
+                var titleFits = !w.name.isEmpty && ax.title == w.name
+                if !titleFits, let active = w.activeTab, !active.title.isEmpty { titleFits = ax.title.hasPrefix(active.title) }
+                if let b = w.bounds {
+                    // A window with a known frame only pairs with a window at that frame; a title alone could be a coincidence
+                    guard ax.frame.approximatelyEquals(b, tolerance: 4) else { continue }
+                    candidates.append((titleFits ? 3 : 2, si, ai))
+                } else if titleFits {
+                    candidates.append((1, si, ai))
+                }
+            }
+        }
+        // Best evidence first; equal evidence keeps both lists' order (front to back)
+        candidates.sort { ($1.score, $0.si, $0.ai) < ($0.score, $1.si, $1.ai) }
+        var result: [Int: AXWindow] = [:]
+        var usedAX = Set<Int>()
+        for c in candidates where result[c.si] == nil && !usedAX.contains(c.ai) {
+            result[c.si] = axWindows[c.ai]
+            usedAX.insert(c.ai)
+        }
+        return result
+    }
+
+    /// Which tab to use for a row of the layout: the best-scoring one (score 0 = no match) in a window that is still free.
+    /// `availability(i)` for scripted window i: true = free, false = another row already uses it, nil = unknown
+    /// (no Accessibility window paired). Tabs in used windows are never chosen: pulling one to the front would take
+    /// the window away from the row that has it. Ties prefer a window known to be free, then the tab that is already
+    /// active (no switching needed), then the earlier window and tab.
+    static func chooseTab(in windows: [Window], availability: (Int) -> Bool?, score: (Tab) -> Double)
+        -> (choice: (window: Int, tab: Int)?, matchInUsedWindow: Bool) {
+        var best: (rank: (Double, Int, Int), window: Int, tab: Int)?
+        var matchInUsedWindow = false
+        for (wi, w) in windows.enumerated() {
+            let available = availability(wi)
+            for (ti, t) in w.tabs.enumerated() {
+                let s = score(t)
+                guard s > 0 else { continue }
+                if available == false {
+                    matchInUsedWindow = true
+                    continue
+                }
+                let rank = (s, available == true ? 1 : 0, t.isActive ? 1 : 0)
+                if best == nil || rank > best!.rank { best = (rank, wi, ti) }
+            }
+        }
+        return (best.map { ($0.window, $0.tab) }, matchInUsedWindow)
     }
 
     private static func run(_ source: String) throws -> String {
@@ -235,6 +287,52 @@ enum BrowserSupport {
             throw ScriptError.failed((error[NSAppleScript.errorMessage] as? String) ?? "code \(code)")
         }
         return result.stringValue ?? ""
+    }
+
+    // MARK: - Checking tab access
+
+    /// Read-only check written to the apply log, triggered with `open "windowlayouts://check-tabs"`: for every running
+    /// browser whose tabs can be listed, how many windows and tabs AppleScript reports and which Accessibility window
+    /// each scripted window corresponds to. Nothing is moved, activated or opened.
+    static func logTabCheck() {
+        ApplyLog.write(L("log.check_start"))
+        let label = L("log.check_label")
+        let browsers = NSWorkspace.shared.runningApplications.filter { app in
+            !app.isTerminated && app.bundleIdentifier.map(canListTabs) == true
+        }
+        if browsers.isEmpty {
+            ApplyLog.write(L("log.check_none"))
+            return
+        }
+        for app in browsers {
+            let name = app.localizedName ?? app.bundleIdentifier ?? ""
+            do {
+                let listed = try listWindows(app: app)
+                ApplyLog.write(L("log.tabs_listed", ["window": label, "app": name, "windows": String(listed.count),
+                                                     "tabs": String(listed.reduce(0) { $0 + $1.tabs.count })]))
+                let axWindows = AX.windows(for: app)
+                let paired = pair(listed, with: axWindows)
+                for (i, w) in listed.enumerated() {
+                    var args = ["app": name, "name": w.name, "bounds": w.bounds?.shortDescription ?? "–",
+                                "tabs": String(w.tabs.count), "index": w.activeTab.map { String($0.index) } ?? "–",
+                                "urls": String(w.tabs.filter { !$0.url.isEmpty }.count),
+                                "titles": String(w.tabs.filter { !$0.title.isEmpty }.count)]
+                    if let match = paired[i] {
+                        args["title"] = match.title
+                        args["frame"] = match.frame.shortDescription
+                        ApplyLog.write(L("log.check_window", args))
+                    } else {
+                        args["count"] = String(axWindows.count)
+                        ApplyLog.write(L("log.check_window_unmapped", args))
+                    }
+                }
+            } catch ScriptError.notPermitted {
+                ApplyLog.write(L("log.script_not_permitted", ["window": label, "app": name]))
+            } catch {
+                let message = (error as? ScriptError)?.message ?? error.localizedDescription
+                ApplyLog.write(L("log.script_failed", ["window": label, "error": message]))
+            }
+        }
     }
 
     // MARK: - Opening a new window

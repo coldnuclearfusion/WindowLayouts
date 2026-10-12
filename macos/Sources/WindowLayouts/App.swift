@@ -52,9 +52,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// windowlayouts://apply?name=<layout name>  or  windowlayouts://apply?id=<UUID>
     /// Used to apply a layout from a terminal (open "windowlayouts://apply?name=…"), Shortcuts, or a hotkey app.
+    /// windowlayouts://check-tabs writes what the running browsers report about their tabs to the apply log (read-only).
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            guard url.scheme?.lowercased() == "windowlayouts", url.host?.lowercased() == "apply" else { continue }
+            guard url.scheme?.lowercased() == "windowlayouts" else { continue }
+            if url.host?.lowercased() == "check-tabs" {
+                BrowserSupport.logTabCheck()
+                continue
+            }
+            guard url.host?.lowercased() == "apply" else { continue }
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
             let name = items.first { $0.name == "name" }?.value
             let id = items.first { $0.name == "id" }?.value

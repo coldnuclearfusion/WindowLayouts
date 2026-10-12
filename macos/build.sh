@@ -11,12 +11,12 @@ if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Develope
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
-# Show the build output without the progress lines ("[12/40]", or "[12 / 40]" and "[Planning …]" from newer
-# toolchains), and stop if the build failed:
+# Show the build output without the progress lines ("[12/40]"; newer toolchains print "[12 / 40]" with thin
+# spaces, U+2009, and "[Planning …]"), and stop if the build failed:
 # otherwise a binary left over from an earlier build would be packaged and installed as if it were new.
 LOG="$(mktemp -t windowlayouts-build)"
 set +e
-swift build -c release 2>&1 | tee "$LOG" | grep -Ev "^\[([0-9]+ ?/ ?[0-9]+|Planning[^]]*)\]"
+swift build -c release 2>&1 | tee "$LOG" | grep -Ev "^\[([0-9]+[^0-9]{0,8}/[^0-9]{0,8}[0-9]+|Planning[^]]*)\]"
 STATUS=${PIPESTATUS[0]}
 set -e
 if [ "$STATUS" -ne 0 ]; then

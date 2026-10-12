@@ -853,6 +853,12 @@
       "ja": "このアドレスを開いているタブがありません",
       "zh-Hans": "没有打开此地址的标签页"
     },
+    "report.reason_tab_in_used_window": {
+      "ko": "맞는 탭이 이 배치의 다른 줄이 쓰는 창 안에 있습니다",
+      "en": "the matching tab is in a window that another row of this layout already uses",
+      "ja": "一致するタブは、この配置の別の行が使っているウィンドウ内にあります",
+      "zh-Hans": "匹配的标签页位于此布局另一行已使用的窗口中"
+    },
     "report.reason_active_only": {
       "ko": "각 창의 활성 탭만 확인할 수 있었습니다",
       "en": "only the active tab of each window could be checked",
@@ -973,6 +979,12 @@
       "ja": "[{window}] {what} に一致するタブなし",
       "zh-Hans": "[{window}] 没有与 {what} 匹配的标签页"
     },
+    "log.tab_in_used_window": {
+      "ko": "[{window}] {what}과(와) 맞는 탭이 있지만 이 배치의 다른 줄이 이미 쓰는 창 안에 있어 건너뜀",
+      "en": "[{window}] a tab matches {what}, but it is in a window that another row of this layout already uses; skipped",
+      "ja": "[{window}] {what} に一致するタブはありますが、この配置の別の行がすでに使っているウィンドウ内にあるためスキップ",
+      "zh-Hans": "[{window}] 有与 {what} 匹配的标签页，但它位于此布局另一行已使用的窗口中，已跳过"
+    },
     "log.tab_window_unmapped": {
       "ko": "[{window}] 브라우저 창 '{name}'을(를) 손쉬운 사용 창 목록에서 찾지 못함 (후보 {count}개)",
       "en": "[{window}] could not find the browser window '{name}' among the Accessibility windows ({count} candidates)",
@@ -1008,6 +1020,36 @@
       "en": "[{window}] new window '{name}' appeared",
       "ja": "[{window}] 新しいウィンドウ '{name}' が表示されました",
       "zh-Hans": "[{window}] 新窗口 '{name}' 已出现"
+    },
+    "log.check_start": {
+      "ko": "=== 브라우저 탭 확인 (읽기만 함)",
+      "en": "=== Browser tab check (read-only)",
+      "ja": "=== ブラウザのタブ確認（読み取りのみ）",
+      "zh-Hans": "=== 浏览器标签页检查（只读）"
+    },
+    "log.check_label": {
+      "ko": "탭 확인",
+      "en": "tab check",
+      "ja": "タブ確認",
+      "zh-Hans": "标签页检查"
+    },
+    "log.check_none": {
+      "ko": "탭 목록을 읽을 수 있는 브라우저(Safari, Chrome 계열)가 실행 중이 아닙니다",
+      "en": "no browser whose tabs can be listed (Safari or a Chromium browser) is running",
+      "ja": "タブ一覧を読めるブラウザ（Safari、Chromium 系）が起動していません",
+      "zh-Hans": "没有正在运行的可列出标签页的浏览器（Safari 或 Chromium 系）"
+    },
+    "log.check_window": {
+      "ko": "[{app}] 창 '{name}' {bounds}: 탭 {tabs}개(주소 {urls}개, 제목 {titles}개 읽음), 활성 탭 {index}번 → 손쉬운 사용 창 '{title}' {frame}",
+      "en": "[{app}] window '{name}' {bounds}: {tabs} tabs ({urls} with an address, {titles} with a title), active tab {index} → Accessibility window '{title}' {frame}",
+      "ja": "[{app}] ウィンドウ '{name}' {bounds}: タブ {tabs}（アドレス {urls}、タイトル {titles} を取得）、アクティブなタブ {index} → アクセシビリティのウィンドウ '{title}' {frame}",
+      "zh-Hans": "[{app}] 窗口 '{name}' {bounds}：{tabs} 个标签页（读到 {urls} 个地址、{titles} 个标题），活动标签页 {index} → 辅助功能窗口 '{title}' {frame}"
+    },
+    "log.check_window_unmapped": {
+      "ko": "[{app}] 창 '{name}' {bounds}: 탭 {tabs}개(주소 {urls}개, 제목 {titles}개 읽음), 활성 탭 {index}번 → 손쉬운 사용 창 목록({count}개)에서 못 찾음",
+      "en": "[{app}] window '{name}' {bounds}: {tabs} tabs ({urls} with an address, {titles} with a title), active tab {index} → not found among the {count} Accessibility windows",
+      "ja": "[{app}] ウィンドウ '{name}' {bounds}: タブ {tabs}（アドレス {urls}、タイトル {titles} を取得）、アクティブなタブ {index} → アクセシビリティのウィンドウ一覧（{count}）に見つかりません",
+      "zh-Hans": "[{app}] 窗口 '{name}' {bounds}：{tabs} 个标签页（读到 {urls} 个地址、{titles} 个标题），活动标签页 {index} → 在 {count} 个辅助功能窗口中找不到"
     },
     "log.place_start": {
       "ko": "시작 {from} → 목표 {to}",
