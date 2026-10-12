@@ -210,6 +210,9 @@ class WindowLayout:
     name: str = ""
     launch_policy: str = "ask"      # ask | launchMissing | runningOnly
     raise_windows: bool = True
+    # macOS setting (switch to a page's tab when it is behind another tab). Tabs cannot be inspected on Linux, so it
+    # has no effect here; it is kept so that a shared layouts.json does not lose it.
+    activate_tabs: bool = True
     display_config: Optional[DisplayConfig] = None
     windows: list = field(default_factory=list)
     id: str = field(default_factory=lambda: str(uuid.uuid4()).upper())
@@ -233,6 +236,7 @@ class WindowLayout:
     def to_json(self) -> dict:
         return {"id": self.id, "name": self.name, "launchPolicy": self.launch_policy,
                 "raiseWindows": self.raise_windows,
+                "activateTabs": self.activate_tabs,
                 "displayConfig": self.display_config.to_json() if self.display_config else None,
                 "windows": [w.to_json() for w in self.windows]}
 
@@ -243,6 +247,7 @@ class WindowLayout:
         l.name = str(d.get("name") or t("layout.untitled"))
         l.launch_policy = d.get("launchPolicy") if d.get("launchPolicy") in POLICY_KEYS else "ask"
         l.raise_windows = bool(d.get("raiseWindows", True))
+        l.activate_tabs = bool(d.get("activateTabs", True))
         l.display_config = DisplayConfig.from_json(d.get("displayConfig"))
         l.windows = [WindowEntry.from_json(w) for w in d.get("windows", []) if isinstance(w, dict)]
         return l

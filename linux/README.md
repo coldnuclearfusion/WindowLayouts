@@ -51,6 +51,7 @@ Coordinates are root-window pixels. Frames include the window-manager decoration
 
 - `bundleID` holds `desktop:<id>.desktop`, `exe:<path>` or `class:<WM_CLASS>`.
 - `displayConfig.displays[].id` is `<output name>|<EDID vendor-model-serial>` when EDID is readable, otherwise the output name.
+- `activateTabs` is kept in the file but has no effect: tabs cannot be inspected on Linux.
 
 ## Layout of the source
 

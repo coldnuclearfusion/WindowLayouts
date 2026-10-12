@@ -217,6 +217,18 @@
       "ja": "適用時にこれらのウィンドウを最前面にする（表の上の項目ほど前）",
       "zh-Hans": "应用时将这些窗口置于最前（表格中越靠上越靠前）"
     },
+    "detail.activate_tabs": {
+      "ko": "브라우저 페이지가 다른 탭 뒤에 숨어 있으면 그 탭을 앞으로 꺼내기",
+      "en": "Bring a browser page to the front when it is in a tab behind another one",
+      "ja": "ブラウザのページが別のタブの後ろにある場合、そのタブを前面に出す",
+      "zh-Hans": "浏览器页面位于其他标签页后面时，将该标签页切换到前面"
+    },
+    "detail.activate_tabs_help": {
+      "ko": "끄면 그 탭이 들어 있는 창을 찾아 배치만 하고, 보고 있던 탭은 바꾸지 않습니다. Safari와 Chrome 계열 브라우저에 적용됩니다.",
+      "en": "When off, the window that contains the tab is still found and placed, but the tab you were viewing stays in front. Applies to Safari and Chromium browsers.",
+      "ja": "オフにすると、そのタブを含むウィンドウを見つけて配置するだけで、表示中のタブは切り替えません。Safari と Chromium 系ブラウザに適用されます。",
+      "zh-Hans": "关闭后，仍会找到并放置包含该标签页的窗口，但不会切换您正在查看的标签页。适用于 Safari 和 Chromium 系浏览器。"
+    },
     "policy.ask": {
       "ko": "매번 물어보기",
       "en": "Ask every time",
@@ -960,6 +972,12 @@
       "en": "[{window}] matched tab {index} ({state}) in window '{name}': {title}",
       "ja": "[{window}] ウィンドウ '{name}' のタブ {index}（{state}）が一致: {title}",
       "zh-Hans": "[{window}] 匹配到窗口 '{name}' 的标签页 {index}（{state}）：{title}"
+    },
+    "log.tab_not_switched": {
+      "ko": "[{window}] 배치 설정에 따라 탭은 전환하지 않고 그 창만 배치",
+      "en": "[{window}] tab not switched (layout setting); only its window is placed",
+      "ja": "[{window}] 配置の設定によりタブは切り替えず、そのウィンドウのみ配置",
+      "zh-Hans": "[{window}] 按布局设置不切换标签页，仅放置其所在窗口"
     },
     "log.tab_active": {
       "ko": "활성",

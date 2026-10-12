@@ -195,15 +195,20 @@ struct WindowLayout: Identifiable, Hashable, Codable {
     var displayConfig: DisplayConfig?
     /// Whether to raise the layout's windows above the others when applying (earlier entries end up higher)
     var raiseWindows: Bool
+    /// When a browser row's page is in a tab behind another tab: true switches to that tab,
+    /// false only places the window that contains it and leaves the tab in view as it is
+    var activateTabs: Bool
 
     init(id: UUID = UUID(), name: String, launchPolicy: LaunchPolicy = .ask,
-         windows: [WindowEntry] = [], displayConfig: DisplayConfig? = nil, raiseWindows: Bool = true) {
+         windows: [WindowEntry] = [], displayConfig: DisplayConfig? = nil, raiseWindows: Bool = true,
+         activateTabs: Bool = true) {
         self.id = id
         self.name = name
         self.launchPolicy = launchPolicy
         self.windows = windows
         self.displayConfig = displayConfig
         self.raiseWindows = raiseWindows
+        self.activateTabs = activateTabs
     }
 
     /// App bundle IDs in order of appearance (enabled windows only)
@@ -217,7 +222,7 @@ struct WindowLayout: Identifiable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, launchPolicy, windows, displayConfig, raiseWindows
+        case id, name, launchPolicy, windows, displayConfig, raiseWindows, activateTabs
     }
 
     init(from decoder: Decoder) throws {
@@ -228,6 +233,7 @@ struct WindowLayout: Identifiable, Hashable, Codable {
         windows = try c.decodeIfPresent([WindowEntry].self, forKey: .windows) ?? []
         displayConfig = try c.decodeIfPresent(DisplayConfig.self, forKey: .displayConfig)
         raiseWindows = try c.decodeIfPresent(Bool.self, forKey: .raiseWindows) ?? true
+        activateTabs = try c.decodeIfPresent(Bool.self, forKey: .activateTabs) ?? true
     }
 }
 

@@ -53,6 +53,9 @@ struct LayoutDetailView: View {
 
             Toggle(L("detail.raise"), isOn: layoutBinding.raiseWindows)
 
+            Toggle(L("detail.activate_tabs"), isOn: layoutBinding.activateTabs)
+                .help(L("detail.activate_tabs_help"))
+
             displayConfigRow
 
             windowTable
