@@ -1117,6 +1117,12 @@
       "ja": "=== チェック状態の確認（読み取りのみ）: 「{name}」、監視中のウィンドウ {count}、現在 {state}",
       "zh-Hans": "=== 勾选状态检查（只读）：“{name}”，监视 {count} 个窗口，当前 {state}"
     },
+    "log.placement_observing": {
+      "ko": "창 알림을 받는 중: 앱 {apps}개, 창 {windows}개 (등록 실패 {failed}개)",
+      "en": "receiving window events from {apps} apps, {windows} windows ({failed} registrations failed)",
+      "ja": "ウィンドウの通知を受信中: アプリ {apps}、ウィンドウ {windows}（登録失敗 {failed}）",
+      "zh-Hans": "正在接收窗口通知：{apps} 个应用、{windows} 个窗口（{failed} 个注册失败）"
+    },
     "log.placement_checked": {
       "ko": "체크 표시됨",
       "en": "checked",

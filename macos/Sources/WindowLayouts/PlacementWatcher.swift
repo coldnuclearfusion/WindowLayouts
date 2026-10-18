@@ -4,8 +4,12 @@ import Observation
 
 /// Watches the windows that the last apply placed. The applied layout keeps its check in the menu only while every one
 /// of them is where the apply left it: moving, resizing, minimizing or closing one removes the check, and putting the
-/// window back brings the check back. Window order and tabs are not watched. Positions are compared every two seconds,
-/// off the main thread, and the placements are kept in UserDefaults so the check survives restarts.
+/// window back brings the check back. Window order and tabs are not watched.
+///
+/// Nothing is polled. macOS reports, through Accessibility observers, every move, resize, minimize, restore and close
+/// of the watched apps' windows and every new window; NSWorkspace reports apps starting and quitting. After a burst of
+/// such events (a window being dragged) the windows are compared once, off the main thread. The placements are kept
+/// in UserDefaults, so after a restart the check comes back once the apps have reopened their windows in place.
 @Observable
 final class PlacementWatcher {
     static let shared = PlacementWatcher()
@@ -34,25 +38,52 @@ final class PlacementWatcher {
     @ObservationIgnored private var placements: [Placement] = []
     /// Parallel to placements: the window watched for each one, nil while it is not known
     @ObservationIgnored private var elements: [AXUIElement?] = []
-    /// Bumped whenever the placements change, so that a check still running for old ones is ignored
+    /// Bumped whenever the placements change, so that a comparison still running for old ones is ignored
     @ObservationIgnored private var generation = 0
-    @ObservationIgnored private var timer: Timer?
+    /// One Accessibility observer per watched process
+    @ObservationIgnored private var observers: [pid_t: AXObserver] = [:]
+    /// Windows whose events are reported, and registrations macOS refused (for the status report)
+    @ObservationIgnored private var registeredWindows = 0
+    @ObservationIgnored private var failedRegistrations = 0
+    @ObservationIgnored private var pendingCheck: DispatchWorkItem?
     @ObservationIgnored private var checking = false
+    @ObservationIgnored private var checkAgain = false
     @ObservationIgnored private let queue = DispatchQueue(label: "WindowLayouts.PlacementWatcher", qos: .utility)
 
     private static let defaultsKey = "lastAppliedPlacements"
     static let tolerance: CGFloat = 4
-    private static let interval: TimeInterval = 2
     /// Some apps adjust a frame right after it was set; the reference frames are read after this delay
     private static let settleDelay: TimeInterval = 1
+    /// Events arrive in bursts while a window is dragged; the windows are compared once they pause this long
+    private static let quietDelay: TimeInterval = 0.3
+    private static let windowNotifications = [
+        kAXMovedNotification, kAXResizedNotification, kAXWindowMiniaturizedNotification,
+        kAXWindowDeminiaturizedNotification, kAXUIElementDestroyedNotification,
+    ]
+
+    private init() {
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspace.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            self?.appLaunched(note)
+        }
+        workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            self?.appTerminated(note)
+        }
+        // Displays added, removed or rearranged: macOS moves windows around
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            self?.scheduleCheck(after: 1)
+        }
+    }
 
     // MARK: - Driven by the applier
 
     /// An apply is about to move windows: nothing is watched (and nothing is checked) until it finishes
     func stop() {
         generation += 1
-        timer?.invalidate()
-        timer = nil
+        pendingCheck?.cancel()
+        pendingCheck = nil
+        unobserveAll()
         placements = []
         elements = []
         inPlace = false
@@ -76,13 +107,12 @@ final class PlacementWatcher {
             elements = newElements
             save()
             inPlace = !newPlacements.isEmpty
-            startTimer()
+            observeApps()
         }
     }
 
     /// At launch: watch the placements saved by the last apply. For a layout applied by a version that did not save
-    /// them, its target frames stand in. The windows are looked for on every check, so apps that are still starting
-    /// are picked up when their windows appear.
+    /// them, its target frames stand in. Windows that are not there yet are found when they appear.
     func restore() {
         guard let id = LayoutStore.shared.lastAppliedID, let layout = LayoutStore.shared.layout(id: id) else { return }
         var restored = load()
@@ -96,24 +126,100 @@ final class PlacementWatcher {
         generation += 1
         placements = restored
         elements = Array(repeating: nil, count: restored.count)
-        startTimer()
+        observeApps()
         check()
     }
 
-    // MARK: - Checking
+    // MARK: - Events
 
-    private func startTimer() {
-        timer?.invalidate()
-        let t = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in self?.check() }
-        RunLoop.main.add(t, forMode: .common)       // keeps running while a menu is open
-        timer = t
+    private func observeApps() {
+        for bundleID in Set(placements.map(\.bundleID)) {
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) where !app.isTerminated {
+                observe(pid: app.processIdentifier)
+            }
+        }
+    }
+
+    /// Ask macOS to report the app's new windows, and moves, resizes, minimizes, restores and closes of its windows
+    private func observe(pid: pid_t) {
+        guard observers[pid] == nil else { return }
+        var created: AXObserver?
+        let status = AXObserverCreate(pid, { _, element, notification, refcon in
+            guard let refcon else { return }
+            Unmanaged<PlacementWatcher>.fromOpaque(refcon).takeUnretainedValue().received(notification as String, element)
+        }, &created)
+        guard status == .success, let observer = created else { return }
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        AXObserverAddNotification(observer, AXUIElementCreateApplication(pid), kAXWindowCreatedNotification as CFString, refcon)
+        for window in AX.windows(pid: pid) { register(window.element, with: observer) }
+        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+        observers[pid] = observer
+    }
+
+    private func register(_ window: AXUIElement, with observer: AXObserver) {
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        var ok = true
+        for name in Self.windowNotifications {
+            let status = AXObserverAddNotification(observer, window, name as CFString, refcon)
+            if status != .success && status != .notificationAlreadyRegistered { ok = false }
+        }
+        if ok { registeredWindows += 1 } else { failedRegistrations += 1 }
+    }
+
+    private func unobserveAll() {
+        for observer in observers.values {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+        }
+        observers.removeAll()
+        registeredWindows = 0
+        failedRegistrations = 0
+    }
+
+    /// Called on the main thread (the observers' run loop)
+    private func received(_ notification: String, _ element: AXUIElement) {
+        if notification == kAXWindowCreatedNotification as String {
+            var pid: pid_t = 0
+            if AXUIElementGetPid(element, &pid) == .success, let observer = observers[pid] {
+                register(element, with: observer)
+            }
+        }
+        scheduleCheck()
+    }
+
+    private func appLaunched(_ note: Notification) {
+        guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              let bundleID = app.bundleIdentifier, placements.contains(where: { $0.bundleID == bundleID }) else { return }
+        observe(pid: app.processIdentifier)
+        scheduleCheck(after: 1)
+    }
+
+    private func appTerminated(_ note: Notification) {
+        guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              let observer = observers.removeValue(forKey: app.processIdentifier) else { return }
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+        scheduleCheck()
+    }
+
+    // MARK: - Comparing
+
+    private func scheduleCheck(after delay: TimeInterval = PlacementWatcher.quietDelay) {
+        guard !placements.isEmpty else { return }
+        pendingCheck?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.check() }
+        pendingCheck = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
     }
 
     private func check() {
-        guard !checking else { return }
-        guard let layoutID = LayoutStore.shared.lastAppliedID, !placements.isEmpty else {
-            timer?.invalidate()
-            timer = nil
+        if checking {
+            checkAgain = true
+            return
+        }
+        guard let layoutID = LayoutStore.shared.lastAppliedID else {
+            stop()      // the layout was deleted
+            return
+        }
+        guard !placements.isEmpty else {
             inPlace = false
             return
         }
@@ -131,6 +237,10 @@ final class PlacementWatcher {
             let result = Self.evaluate(currentPlacements, currentElements, pids: pids)
             DispatchQueue.main.async { [self] in
                 checking = false
+                if checkAgain {
+                    checkAgain = false
+                    scheduleCheck()
+                }
                 guard gen == generation else { return }
                 elements = result.elements
                 guard result.inPlace != inPlace else { return }
@@ -202,6 +312,8 @@ final class PlacementWatcher {
         }
         ApplyLog.write(L("log.placement_start", ["name": layout.name, "count": String(placements.count),
                                                  "state": inPlace ? L("log.placement_checked") : L("log.placement_unchecked")]))
+        ApplyLog.write(L("log.placement_observing", ["apps": String(observers.count), "windows": String(registeredWindows),
+                                                     "failed": String(failedRegistrations)]))
         for (i, p) in placements.enumerated() {
             let apps = NSRunningApplication.runningApplications(withBundleIdentifier: p.bundleID).filter { !$0.isTerminated }
             let app = apps.first?.localizedName ?? layout.appName(for: p.bundleID)
