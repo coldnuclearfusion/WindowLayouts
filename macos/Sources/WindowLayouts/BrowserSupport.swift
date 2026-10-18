@@ -36,6 +36,93 @@ enum BrowserSupport {
         }
     }
 
+    // MARK: - Profiles (Chrome)
+
+    private static let chromeFamily: Set<String> = [
+        "com.google.Chrome", "com.google.Chrome.beta", "com.google.Chrome.canary", "com.google.Chrome.dev",
+    ]
+    /// Chrome's own name in window titles. With several profiles Chrome ends every window title with
+    /// " - <name> - <profile>" (for example "Docs - Chrome - Work"); with a single profile only with " - <name>".
+    private static let chromeTitleNames = [
+        "Google Chrome Canary", "Google Chrome Beta", "Google Chrome Dev", "Google Chrome",
+        "Chrome Canary", "Chrome Beta", "Chrome Dev", "Chrome",
+    ]
+
+    static func supportsProfiles(_ bundleID: String) -> Bool { chromeFamily.contains(bundleID) }
+
+    /// The profile a browser window belongs to, read from the end of its title; nil when the title names none
+    static func profile(fromTitle title: String, bundleID: String) -> String? {
+        guard supportsProfiles(bundleID) else { return nil }
+        if chromeTitleNames.contains(where: { title.hasSuffix(" - " + $0) }) { return nil }
+        var last: Range<String.Index>?
+        for name in chromeTitleNames {
+            if let r = title.range(of: " - \(name) - ", options: .backwards), last.map({ r.lowerBound > $0.lowerBound }) ?? true {
+                last = r
+            }
+        }
+        guard let last else { return nil }
+        let profile = title[last.upperBound...].trimmingCharacters(in: .whitespaces)
+        return profile.isEmpty ? nil : profile
+    }
+
+    /// The menus of an app's menu bar: each menu's title and its items (title and element). Only reads the menus.
+    static func menus(of app: NSRunningApplication) -> [(title: String, items: [(title: String, element: AXUIElement)])] {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(appElement, 1.0)
+        guard let barValue = AX.copyAttribute(appElement, kAXMenuBarAttribute),
+              CFGetTypeID(barValue) == AXUIElementGetTypeID() else { return [] }
+        let bar = barValue as! AXUIElement
+        var result: [(title: String, items: [(title: String, element: AXUIElement)])] = []
+        for barItem in (AX.copyAttribute(bar, kAXChildrenAttribute) as? [AXUIElement]) ?? [] {
+            for menu in (AX.copyAttribute(barItem, kAXChildrenAttribute) as? [AXUIElement]) ?? [] {
+                let items = ((AX.copyAttribute(menu, kAXChildrenAttribute) as? [AXUIElement]) ?? []).map {
+                    (title: AX.string($0, kAXTitleAttribute) ?? "", element: $0)
+                }
+                result.append((AX.string(barItem, kAXTitleAttribute) ?? "", items))
+            }
+        }
+        return result
+    }
+
+    /// The menu that lists the browser's profiles (Chrome's "Profiles" menu): the one with the most items whose title
+    /// passes `isProfile`. Only reads the menu; nothing is opened or chosen.
+    static func profileMenu(of app: NSRunningApplication, matching isProfile: (String) -> Bool)
+        -> (title: String, items: [(title: String, element: AXUIElement)])? {
+        var best: (title: String, items: [(title: String, element: AXUIElement)], hits: Int)?
+        for menu in menus(of: app) {
+            let hits = menu.items.filter { isProfile($0.title) }.count
+            if hits > 0, hits > (best?.hits ?? 0) { best = (menu.title, menu.items, hits) }
+        }
+        return best.map { ($0.title, $0.items) }
+    }
+
+    static func profileMenu(of app: NSRunningApplication, listing names: Set<String>)
+        -> (title: String, items: [(title: String, element: AXUIElement)])? {
+        names.isEmpty ? nil : profileMenu(of: app, matching: { names.contains($0) })
+    }
+
+    /// The Profiles menu item for a profile name as window titles show it. The menu may add an account domain,
+    /// as in "Work (example.com)", so a unique "name (" prefix is accepted too.
+    static func profileMenuItem(of app: NSRunningApplication, named name: String) -> AXUIElement? {
+        func fits(_ title: String) -> Bool { title == name || title.hasPrefix(name + " (") }
+        guard let menu = profileMenu(of: app, matching: fits) else { return nil }
+        if let exact = menu.items.first(where: { $0.title == name }) { return exact.element }
+        let prefixed = menu.items.filter { $0.title.hasPrefix(name + " (") }
+        return prefixed.count == 1 ? prefixed[0].element : nil
+    }
+
+    /// File › New Window, found by its shortcut (⌘N, no other modifier) so that the menu language does not matter
+    static func newWindowMenuItem(of app: NSRunningApplication) -> AXUIElement? {
+        for menu in menus(of: app) {
+            for item in menu.items {
+                guard AX.string(item.element, kAXMenuItemCmdCharAttribute)?.uppercased() == "N" else { continue }
+                let modifiers = (AX.copyAttribute(item.element, kAXMenuItemCmdModifiersAttribute) as? NSNumber)?.intValue
+                if modifiers == 0 { return item.element }
+            }
+        }
+        return nil
+    }
+
     // MARK: - Address comparison
 
     /// Normalization for comparison: lowercase scheme/host, strip www., trailing / and the #fragment
@@ -253,15 +340,16 @@ enum BrowserSupport {
     }
 
     /// Which tab to use for a row of the layout: the best-scoring one (score 0 = no match) in a window that is still free.
+    /// `eligible(i)`: whether scripted window i may be used for this row at all (for example its profile).
     /// `availability(i)` for scripted window i: true = free, false = another row already uses it, nil = unknown
     /// (no Accessibility window paired). Tabs in used windows are never chosen: pulling one to the front would take
     /// the window away from the row that has it. Ties prefer a window known to be free, then the tab that is already
     /// active (no switching needed), then the earlier window and tab.
-    static func chooseTab(in windows: [Window], availability: (Int) -> Bool?, score: (Tab) -> Double)
-        -> (choice: (window: Int, tab: Int)?, matchInUsedWindow: Bool) {
+    static func chooseTab(in windows: [Window], eligible: (Int) -> Bool = { _ in true }, availability: (Int) -> Bool?,
+                          score: (Tab) -> Double) -> (choice: (window: Int, tab: Int)?, matchInUsedWindow: Bool) {
         var best: (rank: (Double, Int, Int), window: Int, tab: Int)?
         var matchInUsedWindow = false
-        for (wi, w) in windows.enumerated() {
+        for (wi, w) in windows.enumerated() where eligible(wi) {
             let available = availability(wi)
             for (ti, t) in w.tabs.enumerated() {
                 let s = score(t)
@@ -326,6 +414,21 @@ enum BrowserSupport {
                         ApplyLog.write(L("log.check_window_unmapped", args))
                     }
                 }
+                if let bundleID = app.bundleIdentifier, supportsProfiles(bundleID) {
+                    var profiles: [String] = []
+                    for w in axWindows {
+                        if let p = profile(fromTitle: w.title, bundleID: bundleID), !profiles.contains(p) { profiles.append(p) }
+                    }
+                    ApplyLog.write(L("log.check_profiles", ["app": name, "list": profiles.isEmpty ? "–" : profiles.joined(separator: ", ")]))
+                    if !profiles.isEmpty {
+                        if let menu = profileMenu(of: app, listing: Set(profiles)) {
+                            let list = menu.items.map { $0.title.isEmpty ? "—" : $0.title }.joined(separator: " | ")
+                            ApplyLog.write(L("log.check_profile_menu", ["app": name, "menu": menu.title, "list": list]))
+                        } else {
+                            ApplyLog.write(L("log.check_profile_menu_missing", ["app": name]))
+                        }
+                    }
+                }
             } catch ScriptError.notPermitted {
                 ApplyLog.write(L("log.script_not_permitted", ["window": label, "app": name]))
             } catch {
@@ -333,6 +436,28 @@ enum BrowserSupport {
                 ApplyLog.write(L("log.script_failed", ["window": label, "error": message]))
             }
         }
+    }
+
+    /// Show a page in a window: replace an empty new tab, or else open the page in a new tab of that window
+    static func showPage(_ url: String, windowID: Int, app: NSRunningApplication) throws {
+        guard let bundleID = app.bundleIdentifier, kind(of: bundleID) == .chromiumScriptable else { return }
+        let escaped = url.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let source = """
+        tell application id "\(bundleID)"
+            set w to window id \(windowID)
+            set u to ""
+            try
+                set u to URL of active tab of w
+            end try
+            if u is "" or u starts with "chrome://newtab" or u starts with "chrome://new-tab-page" or u starts with "about:blank" then
+                set URL of active tab of w to "\(escaped)"
+            else
+                make new tab at end of tabs of w with properties {URL:"\(escaped)"}
+                set active tab index of w to (count of tabs of w)
+            end if
+        end tell
+        """
+        _ = try run(source)
     }
 
     // MARK: - Opening a new window

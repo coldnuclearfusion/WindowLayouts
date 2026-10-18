@@ -52,6 +52,7 @@ Coordinates are root-window pixels. Frames include the window-manager decoration
 - `bundleID` holds `desktop:<id>.desktop`, `exe:<path>` or `class:<WM_CLASS>`.
 - `displayConfig.displays[].id` is `<output name>|<EDID vendor-model-serial>` when EDID is readable, otherwise the output name.
 - `activateTabs` is kept in the file but has no effect: tabs cannot be inspected on Linux.
+- `profile` (the Chrome profile of a window, saved by the macOS version) is kept in the file but not used.
 
 ## Layout of the source
 

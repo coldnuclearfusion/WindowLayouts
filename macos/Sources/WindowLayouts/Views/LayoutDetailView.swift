@@ -101,10 +101,19 @@ struct LayoutDetailView: View {
             .width(34)
 
             TableColumn(L("column.app")) { row in
-                Text(row.appName)
-                    .foregroundStyle(row.enabled ? .primary : .secondary)
+                HStack(spacing: 4) {
+                    Text(row.appName)
+                        .foregroundStyle(row.enabled ? .primary : .secondary)
+                    if let profile = row.profile {
+                        Text(profile)
+                            .foregroundStyle(.secondary)
+                            .layoutPriority(1)      // the app name is shortened first
+                            .help(L("column.profile_help", ["name": profile]))
+                    }
+                }
+                .lineLimit(1)
             }
-            .width(min: 90, ideal: 120)
+            .width(min: 90, ideal: 160)
 
             TableColumn(L("column.title")) { row in
                 TextField("", text: entry(row.id).title)

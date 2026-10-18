@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if LayoutStore.shared.layouts.isEmpty {
             NSApp.activate(ignoringOtherApps: true)
         }
+        PlacementWatcher.shared.restore()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -53,11 +54,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// windowlayouts://apply?name=<layout name>  or  windowlayouts://apply?id=<UUID>
     /// Used to apply a layout from a terminal (open "windowlayouts://apply?name=…"), Shortcuts, or a hotkey app.
     /// windowlayouts://check-tabs writes what the running browsers report about their tabs to the apply log (read-only).
+    /// windowlayouts://check-placement writes whether the windows of the applied layout are still in place (read-only).
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             guard url.scheme?.lowercased() == "windowlayouts" else { continue }
             if url.host?.lowercased() == "check-tabs" {
                 BrowserSupport.logTabCheck()
+                continue
+            }
+            if url.host?.lowercased() == "check-placement" {
+                PlacementWatcher.shared.logStatus()
                 continue
             }
             guard url.host?.lowercased() == "apply" else { continue }

@@ -13,6 +13,7 @@ struct CaptureSheet: View {
     @State private var selected = Set<UUID>()
     @AppStorage("saveWindowTitles") private var saveTitles = true
     @AppStorage("saveWindowURLs") private var saveURLs = true
+    @AppStorage("saveBrowserProfiles") private var saveProfiles = true
 
     private var isNewLayout: Bool { request.targetLayoutID == nil }
 
@@ -65,6 +66,8 @@ struct CaptureSheet: View {
                     .font(.caption)
                 Toggle(L("capture.save_urls"), isOn: $saveURLs)
                     .font(.caption)
+                Toggle(L("capture.save_profiles"), isOn: $saveProfiles)
+                    .font(.caption)
                 List {
                     ForEach(groups) { group in
                         Section {
@@ -75,8 +78,8 @@ struct CaptureSheet: View {
                                             Text(w.title.isEmpty ? L("capture.untitled_window") : w.title)
                                                 .lineLimit(1)
                                                 .truncationMode(.middle)
-                                            if let url = w.url, saveURLs {
-                                                Text(url)
+                                            if let detail = detailLine(w) {
+                                                Text(detail)
                                                     .font(.caption)
                                                     .foregroundStyle(.secondary)
                                                     .lineLimit(1)
@@ -158,6 +161,14 @@ struct CaptureSheet: View {
         .frame(maxWidth: .infinity)
     }
 
+    /// Second line of a window row: the profile and page address that would be saved with it
+    private func detailLine(_ w: CapturedWindow) -> String? {
+        var parts: [String] = []
+        if saveProfiles, let profile = w.profile { parts.append(L("capture.profile_tag", ["name": profile])) }
+        if saveURLs, let url = w.url { parts.append(url) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     private func windowBinding(_ id: UUID) -> Binding<Bool> {
         Binding(
             get: { selected.contains(id) },
@@ -190,7 +201,7 @@ struct CaptureSheet: View {
     private func save() {
         let entries = request.windows
             .filter { selected.contains($0.id) }
-            .map { $0.makeEntry(includeTitle: saveTitles, includeURL: saveURLs) }
+            .map { $0.makeEntry(includeTitle: saveTitles, includeURL: saveURLs, includeProfile: saveProfiles) }
         if let target = request.targetLayoutID {
             store.append(entries, to: target)
         } else {

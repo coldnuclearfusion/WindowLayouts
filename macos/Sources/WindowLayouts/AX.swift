@@ -21,7 +21,11 @@ enum AX {
 
     /// The app's normal windows (dialogs, sheets and floating windows excluded)
     static func windows(for app: NSRunningApplication) -> [AXWindow] {
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        windows(pid: app.processIdentifier)
+    }
+
+    static func windows(pid: pid_t) -> [AXWindow] {
+        let appElement = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appElement, 1.0)
         guard let raw = copyAttribute(appElement, kAXWindowsAttribute),
               let list = raw as? [AXUIElement] else { return [] }

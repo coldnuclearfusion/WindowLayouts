@@ -121,6 +121,9 @@ struct WindowEntry: Identifiable, Hashable, Codable {
     var displayID: String?
     /// For browser windows: the page to show here. Takes precedence over the title when finding the window; opens a new window if none has it
     var url: String?
+    /// For Chrome windows: the profile the window belongs to, as Chrome shows it at the end of window titles.
+    /// nil = any profile. When set, only windows of that profile are used, and a missing one is opened in that profile.
+    var profile: String?
 
     init(id: UUID = UUID(),
          bundleID: String,
@@ -130,7 +133,8 @@ struct WindowEntry: Identifiable, Hashable, Codable {
          frame: CGRect,
          enabled: Bool = true,
          displayID: String? = nil,
-         url: String? = nil) {
+         url: String? = nil,
+         profile: String? = nil) {
         self.id = id
         self.bundleID = bundleID
         self.appName = appName
@@ -143,6 +147,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
         self.enabled = enabled
         self.displayID = displayID
         self.url = url
+        self.profile = profile
     }
 
     var frame: CGRect {
@@ -165,7 +170,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, bundleID, appName, title, titleMatch, x, y, width, height, enabled, displayID, url
+        case id, bundleID, appName, title, titleMatch, x, y, width, height, enabled, displayID, url, profile
     }
 
     // Lenient decoding so hand-edited JSON with missing keys still loads
@@ -183,6 +188,7 @@ struct WindowEntry: Identifiable, Hashable, Codable {
         enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         displayID = try c.decodeIfPresent(String.self, forKey: .displayID)
         url = try c.decodeIfPresent(String.self, forKey: .url)
+        profile = try c.decodeIfPresent(String.self, forKey: .profile)
     }
 }
 

@@ -163,6 +163,9 @@ class WindowEntry:
     enabled: bool = True
     display_id: Optional[str] = None
     url: Optional[str] = None
+    # macOS: the Chrome profile the window belongs to. Not used on Linux; kept so that a shared layouts.json does
+    # not lose it.
+    profile: Optional[str] = None
     id: str = field(default_factory=lambda: str(uuid.uuid4()).upper())
 
     @property
@@ -185,7 +188,7 @@ class WindowEntry:
     def to_json(self) -> dict:
         return {"id": self.id, "bundleID": self.bundle_id, "appName": self.app_name, "title": self.title,
                 "titleMatch": self.title_match, "x": self.x, "y": self.y, "width": self.width,
-                "height": self.height, "enabled": self.enabled, "displayID": self.display_id, "url": self.url}
+                "height": self.height, "enabled": self.enabled, "displayID": self.display_id, "url": self.url, "profile": self.profile}
 
     @staticmethod
     def from_json(d: dict) -> "WindowEntry":
@@ -202,6 +205,7 @@ class WindowEntry:
         e.display_id = d.get("displayID") or None
         url = d.get("url")
         e.url = str(url).strip() if url else None
+        e.profile = str(d["profile"]) if d.get("profile") else None
         return e
 
 

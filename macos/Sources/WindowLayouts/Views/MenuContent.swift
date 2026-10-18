@@ -54,12 +54,13 @@ struct MenuContent: View {
         }
     }
 
-    /// The layout applied last gets the menu's own check mark. A Toggle is what SwiftUI turns into a menu item with
-    /// that state; a Label with a "checkmark" image only became the item's icon, which the menu did not show as a check.
+    /// The layout applied last gets the menu's own check mark, as long as its windows are where it put them
+    /// (PlacementWatcher). A Toggle is what SwiftUI turns into a menu item with that state; a Label with a "checkmark"
+    /// image only became the item's icon, which the menu did not show as a check.
     /// Choosing an item always applies the layout, the checked one included (that puts its windows back in place).
     private func layoutItem(_ layout: WindowLayout) -> some View {
         Toggle(layout.name, isOn: Binding(
-            get: { store.lastAppliedID == layout.id },
+            get: { store.lastAppliedID == layout.id && PlacementWatcher.shared.inPlace },
             set: { _ in Task { await LayoutApplier.shared.apply(layout) } }
         ))
         .disabled(LayoutApplier.shared.isApplying)

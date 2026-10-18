@@ -295,6 +295,12 @@
       "ja": "ブラウザのウィンドウにのみ使います",
       "zh-Hans": "仅用于浏览器窗口"
     },
+    "column.profile_help": {
+      "ko": "프로필 '{name}'의 창만 씁니다. 없으면 그 프로필로 새 창을 엽니다.",
+      "en": "Only windows of the profile '{name}' are used; if there is none, one is opened in that profile.",
+      "ja": "プロファイル「{name}」のウィンドウだけを使います。なければそのプロファイルで新しいウィンドウを開きます。",
+      "zh-Hans": "只使用个人资料“{name}”的窗口；若没有，则以该个人资料打开新窗口。"
+    },
     "column.match": {
       "ko": "찾기",
       "en": "Match",
@@ -516,6 +522,18 @@
       "en": "Also save the page address of browser windows (when applying, the window with that tab is used, or a new window is opened)",
       "ja": "ブラウザのウィンドウはページアドレスも保存（適用時にそのタブがあるウィンドウを使い、なければ新しいウィンドウを開く）",
       "zh-Hans": "同时保存浏览器窗口的页面地址（应用时使用含有该标签页的窗口，没有则打开新窗口）"
+    },
+    "capture.save_profiles": {
+      "ko": "Chrome 창은 어느 프로필의 창인지도 저장 (적용할 때 같은 프로필의 창만 쓰고, 없으면 그 프로필로 새 창을 엶)",
+      "en": "Also save which profile each Chrome window belongs to (when applying, only windows of that profile are used, and a missing one is opened in that profile)",
+      "ja": "Chrome のウィンドウはどのプロファイルのものかも保存（適用時は同じプロファイルのウィンドウだけを使い、なければそのプロファイルで新しいウィンドウを開く）",
+      "zh-Hans": "同时保存每个 Chrome 窗口所属的个人资料（应用时只使用该个人资料的窗口，没有则以该个人资料打开新窗口）"
+    },
+    "capture.profile_tag": {
+      "ko": "프로필 {name}",
+      "en": "profile {name}",
+      "ja": "プロファイル {name}",
+      "zh-Hans": "个人资料 {name}"
     },
     "capture.untitled_window": {
       "ko": "(제목 없음)",
@@ -847,6 +865,36 @@
       "ja": "{app}: {url} を表示するウィンドウが見つからないため、新しいウィンドウで開きました。（{reason}）",
       "zh-Hans": "{app}：未找到显示 {url} 的窗口，已在新窗口中打开。（{reason}）"
     },
+    "report.profile_window_opened": {
+      "ko": "{app}: 프로필 '{profile}'의 남는 창이 없어 그 프로필로 새 창을 열었습니다.",
+      "en": "{app}: no free window of the profile '{profile}', so one was opened in that profile.",
+      "ja": "{app}: プロファイル「{profile}」の空いているウィンドウがないため、そのプロファイルで新しいウィンドウを開きました。",
+      "zh-Hans": "{app}：个人资料“{profile}”没有空闲窗口，已以该个人资料打开新窗口。"
+    },
+    "report.profile_window_failed": {
+      "ko": "{app}: 프로필 '{profile}'의 창을 열지 못했습니다 ({reason}).",
+      "en": "{app}: could not open a window of the profile '{profile}' ({reason}).",
+      "ja": "{app}: プロファイル「{profile}」のウィンドウを開けませんでした（{reason}）。",
+      "zh-Hans": "{app}：无法打开个人资料“{profile}”的窗口（{reason}）。"
+    },
+    "report.reason_profile_menu": {
+      "ko": "Chrome의 프로필 메뉴에 그 이름이 없습니다",
+      "en": "Chrome's Profiles menu has no such name",
+      "ja": "Chrome のプロファイルメニューにその名前がありません",
+      "zh-Hans": "Chrome 的个人资料菜单中没有该名称"
+    },
+    "report.reason_new_window_item": {
+      "ko": "Chrome의 '새 창' 메뉴 항목을 찾지 못했습니다",
+      "en": "Chrome's New Window menu item was not found",
+      "ja": "Chrome の「新規ウィンドウ」メニュー項目が見つかりません",
+      "zh-Hans": "找不到 Chrome 的“新建窗口”菜单项"
+    },
+    "report.reason_no_window_appeared": {
+      "ko": "창이 나타나지 않았습니다",
+      "en": "no window appeared",
+      "ja": "ウィンドウが表示されませんでした",
+      "zh-Hans": "没有出现窗口"
+    },
     "report.reason_windows_tabs": {
       "ko": "Windows에서는 뒤에 숨은 탭을 볼 수 없습니다",
       "en": "background tabs cannot be inspected on Windows",
@@ -1039,6 +1087,96 @@
       "ja": "[{window}] 新しいウィンドウ '{name}' が表示されました",
       "zh-Hans": "[{window}] 新窗口 '{name}' 已出现"
     },
+    "log.profile_window_open": {
+      "ko": "[{window}] 프로필 '{profile}'의 남는 창이 없어 그 프로필로 새 창을 여는 중",
+      "en": "[{window}] no free window of the profile '{profile}'; opening one in that profile",
+      "ja": "[{window}] プロファイル「{profile}」の空いているウィンドウがないため、そのプロファイルで開いています",
+      "zh-Hans": "[{window}] 个人资料“{profile}”没有空闲窗口，正在以该个人资料打开"
+    },
+    "log.profile_window_done": {
+      "ko": "[{window}] 프로필 '{profile}'의 새 창 '{name}' 나타남",
+      "en": "[{window}] new window '{name}' of the profile '{profile}' appeared",
+      "ja": "[{window}] プロファイル「{profile}」の新しいウィンドウ '{name}' が表示されました",
+      "zh-Hans": "[{window}] 个人资料“{profile}”的新窗口 '{name}' 已出现"
+    },
+    "log.check_off": {
+      "ko": "[체크] '{name}' 배치의 {app} 창이 제자리를 벗어나 메뉴의 체크를 지움",
+      "en": "[check] a {app} window of '{name}' left its place; the menu check is removed",
+      "ja": "[チェック] 「{name}」の {app} のウィンドウが位置を外れたため、メニューのチェックを外しました",
+      "zh-Hans": "[勾选] “{name}”中 {app} 的窗口离开了原位，已移除菜单勾选"
+    },
+    "log.check_on": {
+      "ko": "[체크] '{name}' 배치의 창들이 모두 제자리에 있어 메뉴에 체크를 표시",
+      "en": "[check] all windows of '{name}' are in place; the menu shows the check",
+      "ja": "[チェック] 「{name}」のウィンドウがすべて元の位置にあるため、メニューにチェックを表示",
+      "zh-Hans": "[勾选] “{name}”的窗口都在原位，菜单显示勾选"
+    },
+    "log.placement_start": {
+      "ko": "=== 체크 상태 확인 (읽기만 함): '{name}', 지켜보는 창 {count}개, 지금 {state}",
+      "en": "=== Check status (read-only): '{name}', {count} windows watched, currently {state}",
+      "ja": "=== チェック状態の確認（読み取りのみ）: 「{name}」、監視中のウィンドウ {count}、現在 {state}",
+      "zh-Hans": "=== 勾选状态检查（只读）：“{name}”，监视 {count} 个窗口，当前 {state}"
+    },
+    "log.placement_checked": {
+      "ko": "체크 표시됨",
+      "en": "checked",
+      "ja": "チェックあり",
+      "zh-Hans": "已勾选"
+    },
+    "log.placement_unchecked": {
+      "ko": "체크 없음",
+      "en": "not checked",
+      "ja": "チェックなし",
+      "zh-Hans": "未勾选"
+    },
+    "log.placement_none": {
+      "ko": "=== 체크 상태 확인 (읽기만 함): 마지막으로 적용한 배치가 없습니다",
+      "en": "=== Check status (read-only): no layout has been applied",
+      "ja": "=== チェック状態の確認（読み取りのみ）: 最後に適用した配置がありません",
+      "zh-Hans": "=== 勾选状态检查（只读）：还没有应用过布局"
+    },
+    "log.placement_item": {
+      "ko": "[{app}] 놓인 자리 {frame}: {state}",
+      "en": "[{app}] placed at {frame}: {state}",
+      "ja": "[{app}] 配置した位置 {frame}: {state}",
+      "zh-Hans": "[{app}] 放置位置 {frame}：{state}"
+    },
+    "log.placement_in_place": {
+      "ko": "제자리",
+      "en": "in place",
+      "ja": "元の位置",
+      "zh-Hans": "在原位"
+    },
+    "log.placement_minimized": {
+      "ko": "최소화됨",
+      "en": "minimized",
+      "ja": "最小化",
+      "zh-Hans": "已最小化"
+    },
+    "log.placement_moved": {
+      "ko": "옮겨짐, 지금 {frame}",
+      "en": "moved, now {frame}",
+      "ja": "移動、現在 {frame}",
+      "zh-Hans": "已移动，当前 {frame}"
+    },
+    "log.placement_no_window": {
+      "ko": "창 없음 (앱이 꺼졌거나 창이 닫힘)",
+      "en": "no window (the app quit or the window was closed)",
+      "ja": "ウィンドウなし（アプリ終了またはウィンドウを閉じた）",
+      "zh-Hans": "没有窗口（应用已退出或窗口已关闭）"
+    },
+    "log.placement_found": {
+      "ko": "그 자리에 창이 있음 (다음 확인 때부터 지켜봄)",
+      "en": "a window is there (watched from the next check)",
+      "ja": "その位置にウィンドウあり（次の確認から監視）",
+      "zh-Hans": "该位置有窗口（从下次检查起监视）"
+    },
+    "log.placement_elsewhere": {
+      "ko": "그 자리에 창이 없음. 이 앱의 창: {frames}",
+      "en": "no window there; this app's windows: {frames}",
+      "ja": "その位置にウィンドウなし。このアプリのウィンドウ: {frames}",
+      "zh-Hans": "该位置没有窗口；此应用的窗口：{frames}"
+    },
     "log.check_start": {
       "ko": "=== 브라우저 탭 확인 (읽기만 함)",
       "en": "=== Browser tab check (read-only)",
@@ -1068,6 +1206,24 @@
       "en": "[{app}] window '{name}' {bounds}: {tabs} tabs ({urls} with an address, {titles} with a title), active tab {index} → not found among the {count} Accessibility windows",
       "ja": "[{app}] ウィンドウ '{name}' {bounds}: タブ {tabs}（アドレス {urls}、タイトル {titles} を取得）、アクティブなタブ {index} → アクセシビリティのウィンドウ一覧（{count}）に見つかりません",
       "zh-Hans": "[{app}] 窗口 '{name}' {bounds}：{tabs} 个标签页（读到 {urls} 个地址、{titles} 个标题），活动标签页 {index} → 在 {count} 个辅助功能窗口中找不到"
+    },
+    "log.check_profiles": {
+      "ko": "[{app}] 창 제목에서 찾은 프로필: {list}",
+      "en": "[{app}] profiles found in window titles: {list}",
+      "ja": "[{app}] ウィンドウのタイトルから見つけたプロファイル: {list}",
+      "zh-Hans": "[{app}] 从窗口标题中找到的个人资料：{list}"
+    },
+    "log.check_profile_menu": {
+      "ko": "[{app}] 프로필이 나열된 메뉴 '{menu}': {list}",
+      "en": "[{app}] menu that lists the profiles, '{menu}': {list}",
+      "ja": "[{app}] プロファイルが並ぶメニュー '{menu}': {list}",
+      "zh-Hans": "[{app}] 列出个人资料的菜单 '{menu}'：{list}"
+    },
+    "log.check_profile_menu_missing": {
+      "ko": "[{app}] 이 프로필 이름들이 든 메뉴를 메뉴 막대에서 찾지 못함",
+      "en": "[{app}] no menu in the menu bar lists these profiles",
+      "ja": "[{app}] これらのプロファイル名を含むメニューがメニューバーに見つかりません",
+      "zh-Hans": "[{app}] 菜单栏中没有列出这些个人资料的菜单"
     },
     "log.place_start": {
       "ko": "시작 {from} → 목표 {to}",

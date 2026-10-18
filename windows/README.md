@@ -43,6 +43,7 @@ Every apply is logged to `%LOCALAPPDATA%\WindowLayouts\apply.log` (*General › 
 - `displayConfig.displays[].id` is the monitor's device interface path; `name` is the monitor's PnP name.
 - Coordinates are physical pixels.
 - `activateTabs` is kept in the file but has no effect: background tabs cannot be inspected on Windows.
+- `profile` (the Chrome profile of a window, saved by the macOS version) is kept in the file but not used.
 
 ## Layout of the source
 

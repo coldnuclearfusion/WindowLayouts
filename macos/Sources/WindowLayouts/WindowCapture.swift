@@ -12,14 +12,18 @@ struct CapturedWindow: Identifiable {
     let displayID: String?
     /// For browser windows, the active tab's address
     let url: String?
+    /// For Chrome windows, the profile named at the end of the window title
+    let profile: String?
 
-    /// With includeTitle false the title is cleared and matching is by order only; with includeURL false the address is not saved.
-    func makeEntry(includeTitle: Bool = true, includeURL: Bool = true) -> WindowEntry {
+    /// With includeTitle false the title is cleared and matching is by order only; with includeURL false the address
+    /// is not saved; with includeProfile false the window may be matched with a window of any profile.
+    func makeEntry(includeTitle: Bool = true, includeURL: Bool = true, includeProfile: Bool = true) -> WindowEntry {
         WindowEntry(bundleID: bundleID, appName: appName,
                     title: includeTitle ? title : "",
                     titleMatch: includeTitle ? .auto : .order,
                     frame: frame, displayID: displayID,
-                    url: includeURL ? url : nil)
+                    url: includeURL ? url : nil,
+                    profile: includeProfile ? profile : nil)
     }
 }
 
@@ -44,8 +48,10 @@ enum WindowCapture {
                 let center = CGPoint(x: w.frame.midX, y: w.frame.midY)
                 let display = config.display(containing: center) ?? config.display(containing: w.frame.origin)
                 let url = BrowserSupport.isBrowser(bundleID) ? AX.webURL(of: w.element) : nil
+                let profile = BrowserSupport.profile(fromTitle: w.title, bundleID: bundleID)
                 captured.append(CapturedWindow(bundleID: bundleID, appName: name, title: w.title,
-                                               frame: w.frame, element: w.element, displayID: display?.id, url: url))
+                                               frame: w.frame, element: w.element, displayID: display?.id, url: url,
+                                               profile: profile))
             }
         }
 

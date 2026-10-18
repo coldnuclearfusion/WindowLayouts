@@ -146,6 +146,7 @@ public sealed class WindowEntry : NotifyBase
     private bool _enabled = true;
     private string? _displayID;
     private string? _url;
+    private string? _profile;
     private string _monitorName = "";
     private bool _marked;
 
@@ -173,6 +174,10 @@ public sealed class WindowEntry : NotifyBase
             Set(ref _url, string.IsNullOrEmpty(trimmed) ? null : trimmed);
         }
     }
+
+    /// <summary>macOS: the Chrome profile the window belongs to. Not used on Windows; kept so that a shared
+    /// layouts.json does not lose it.</summary>
+    [JsonPropertyName("profile")] public string? Profile { get => _profile; set => Set(ref _profile, value); }
 
     /// <summary>Display-only (not saved): the name of the monitor this window was on</summary>
     [JsonIgnore] public string MonitorName { get => _monitorName; set => Set(ref _monitorName, value); }
@@ -204,7 +209,7 @@ public sealed class WindowEntry : NotifyBase
         return new WindowEntry
         {
             Id = Guid.NewGuid(), BundleID = BundleID, AppName = AppName, Title = Title, TitleMatch = TitleMatch,
-            X = X, Y = Y, Width = Width, Height = Height, Enabled = Enabled, DisplayID = DisplayID, Url = Url,
+            X = X, Y = Y, Width = Width, Height = Height, Enabled = Enabled, DisplayID = DisplayID, Url = Url, Profile = Profile,
         };
     }
 }

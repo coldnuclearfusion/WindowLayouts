@@ -198,6 +198,9 @@ final class LayoutApplier {
             }
         }
 
+        // Windows are about to move: the check of the previous layout goes away until this apply has finished
+        PlacementWatcher.shared.stop()
+
         // Match and move windows per app
         var placedWindows: [(entry: WindowEntry, window: AXWindow, app: NSRunningApplication)] = []
         for bundleID in bundleIDs where !skipped.contains(bundleID) {
@@ -213,7 +216,21 @@ final class LayoutApplier {
                                             allowNewWindows: allowNewWindows, activateTabs: layout.activateTabs,
                                             report: &report)
             }
-            matches += WindowMatcher.match(entries: appEntries, windows: windows)
+            if BrowserSupport.supportsProfiles(bundleID) {
+                matches += Self.matchByProfile(entries: appEntries, windows: windows) {
+                    BrowserSupport.profile(fromTitle: $0.title, bundleID: bundleID)
+                }
+                // Rows bound to a profile that has no free window: open one in that profile
+                if allowNewWindows, let app = apps.first {
+                    for i in matches.indices where matches[i].window == nil {
+                        guard let profile = matches[i].entry.profile else { continue }
+                        matches[i].window = await openProfileWindow(profile, url: nil, for: matches[i].entry, app: app,
+                                                                     activateTabs: layout.activateTabs, report: &report)
+                    }
+                }
+            } else {
+                matches += WindowMatcher.match(entries: appEntries, windows: windows)
+            }
 
             for (entry, window) in matches {
                 guard let window else {
@@ -246,6 +263,7 @@ final class LayoutApplier {
         }
 
         LayoutStore.shared.lastAppliedID = layout.id
+        PlacementWatcher.shared.start(with: placedWindows.map { ($0.app.bundleIdentifier ?? $0.entry.bundleID, $0.window.element) })
         lastReport = report
     }
 
@@ -309,17 +327,30 @@ final class LayoutApplier {
             appEntries.removeAll { $0.id == entry.id }
         }
 
+        // A row bound to a browser profile only takes windows of that profile (nil = a window not paired, whose
+        // profile cannot be told)
+        let bundleID = app.bundleIdentifier ?? ""
+        let useProfiles = BrowserSupport.supportsProfiles(bundleID)
+        func profileOf(_ w: AXWindow) -> String? { BrowserSupport.profile(fromTitle: w.title, bundleID: bundleID) }
+        func eligible(_ entry: WindowEntry) -> (AXWindow?) -> Bool {
+            { w in
+                guard useProfiles, let profile = entry.profile else { return true }
+                guard let w else { return false }
+                return profileOf(w) == profile
+            }
+        }
+
         // 1) entries with an address
         for entry in urlEntries {
             let url = (entry.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let search = await findTab(for: entry, what: url, session: &session, app: app, windows: windows,
-                                       activateTabs: activateTabs) {
+                                       eligible: eligible(entry), activateTabs: activateTabs) {
                 BrowserSupport.matches(saved: url, candidate: $0.url) ? 1 : 0
             }
             var found = search.window
             if found == nil {
                 // Without tab listing: the active tab of each remaining window through Accessibility
-                for w in windows {
+                for w in windows where eligible(entry)(w) {
                     if let current = AX.webURL(of: w.element), BrowserSupport.matches(saved: url, candidate: current) {
                         ApplyLog.write(L("log.active_tab_hit", ["window": entry.displayName, "name": w.title]))
                         found = w
@@ -334,21 +365,34 @@ final class LayoutApplier {
                 } else {
                     reason = session.scripted != nil ? L("report.reason_no_tab") : L("report.reason_active_only")
                 }
-                found = await openNewWindow(url, for: entry, app: app, report: &report, reason: reason)
+                if useProfiles, let profile = entry.profile {
+                    found = await openProfileWindow(profile, url: url, for: entry, app: app,
+                                                    activateTabs: activateTabs, report: &report)
+                } else {
+                    found = await openNewWindow(url, for: entry, app: app, report: &report, reason: reason)
+                }
             }
             if let found { assign(entry, found) }
         }
 
         // 2) entries with a title: window titles first (no order fallback yet), then tabs behind other tabs
+        // Rows bound to a profile first, each among that profile's windows; then the others among what is left
         let titled = appEntries.filter { titledIDs.contains($0.id) }
-        for (entry, window) in WindowMatcher.match(entries: titled, windows: windows, orderFallback: false) {
-            if let window { assign(entry, window) }
+        var profileKeys: [String] = []
+        for e in titled where useProfiles { if let p = e.profile, !profileKeys.contains(p) { profileKeys.append(p) } }
+        for key in profileKeys.map(Optional.some) + [nil] {
+            let group = titled.filter { (useProfiles ? $0.profile : nil) == key }
+            guard !group.isEmpty else { continue }
+            let candidates = windows.filter { key == nil || profileOf($0) == key }
+            for (entry, window) in WindowMatcher.match(entries: group, windows: candidates, orderFallback: false) {
+                if let window { assign(entry, window) }
+            }
         }
         guard session.scripted != nil else { return }
         for entry in appEntries.filter({ titledIDs.contains($0.id) }) {
             let ignoring = session.boilerplate.union(WindowMatcher.tokens(entry.appName))
             let search = await findTab(for: entry, what: "'\(entry.title)'", session: &session, app: app, windows: windows,
-                                       activateTabs: activateTabs) {
+                                       eligible: eligible(entry), activateTabs: activateTabs) {
                 let s = BrowserSupport.titleScore(saved: entry.title, tabTitle: $0.title, ignoring: ignoring)
                 return s >= BrowserSupport.titleThreshold ? s : 0
             }
@@ -361,11 +405,11 @@ final class LayoutApplier {
     /// `windows` are the Accessibility windows no entry has taken yet; tabs in taken windows are left alone.
     @MainActor
     private func findTab(for entry: WindowEntry, what: String, session: inout BrowserSession,
-                         app: NSRunningApplication, windows: [AXWindow], activateTabs: Bool,
-                         score: (BrowserSupport.Tab) -> Double) async -> TabSearch {
+                         app: NSRunningApplication, windows: [AXWindow], eligible: (AXWindow?) -> Bool,
+                         activateTabs: Bool, score: (BrowserSupport.Tab) -> Double) async -> TabSearch {
         guard let scripted = session.scripted else { return TabSearch() }
         let paired = session.paired
-        let picked = BrowserSupport.chooseTab(in: scripted, availability: { wi in
+        let picked = BrowserSupport.chooseTab(in: scripted, eligible: { eligible(paired[$0]) }, availability: { wi in
             paired[wi].map { p in windows.contains { AX.isSame($0.element, p.element) } }
         }, score: score)
         guard let choice = picked.choice else {
@@ -403,13 +447,101 @@ final class LayoutApplier {
             return TabSearch()
         }
         try? await Task.sleep(for: .milliseconds(150))
-        let fresh = AX.windows(for: app).filter { f in windows.contains { AX.isSame($0.element, f.element) } }
+        let fresh = AX.windows(for: app).filter { f in windows.contains { AX.isSame($0.element, f.element) } && eligible(f) }
         if let w = fresh.first(where: { f in
             (!tab.url.isEmpty && AX.webURL(of: f.element).map { BrowserSupport.normalize($0) == BrowserSupport.normalize(tab.url) } == true)
                 || (!tab.title.isEmpty && f.title.hasPrefix(tab.title))
         }) { return TabSearch(window: w) }
         ApplyLog.write(L("log.tab_window_unmapped", ["window": entry.displayName, "name": window.name, "count": String(windows.count)]))
         return TabSearch()
+    }
+
+    /// WindowMatcher per browser profile: rows bound to a profile only get windows of that profile, and rows without
+    /// one share whatever is left afterwards.
+    static func matchByProfile(entries: [WindowEntry], windows: [AXWindow],
+                               profileOf: (AXWindow) -> String?) -> [(entry: WindowEntry, window: AXWindow?)] {
+        var remaining = windows
+        var assigned: [UUID: AXWindow] = [:]
+        var profiles: [String] = []
+        for e in entries { if let p = e.profile, !profiles.contains(p) { profiles.append(p) } }
+        for profile in profiles {
+            let group = entries.filter { $0.profile == profile }
+            let candidates = remaining.filter { profileOf($0) == profile }
+            for (entry, window) in WindowMatcher.match(entries: group, windows: candidates) {
+                guard let window else { continue }
+                assigned[entry.id] = window
+                remaining.removeAll { CFEqual($0.element, window.element) }
+            }
+        }
+        let rest = entries.filter { $0.profile == nil }
+        for (entry, window) in WindowMatcher.match(entries: rest, windows: remaining) {
+            if let window { assigned[entry.id] = window }
+        }
+        return entries.map { ($0, assigned[$0.id]) }
+    }
+
+    /// Open a Chrome window of the given profile through Chrome's Profiles menu and wait for it. Choosing a profile
+    /// there opens a window for it, or brings its window forward when it has one; File › New Window (⌘N) then opens
+    /// another window of that profile. With an address, the page is shown in the new window.
+    @MainActor
+    private func openProfileWindow(_ profile: String, url: String?, for entry: WindowEntry, app: NSRunningApplication,
+                                   activateTabs: Bool, report: inout ApplyReport) async -> AXWindow? {
+        guard let bundleID = app.bundleIdentifier else { return nil }
+        ApplyLog.write(L("log.profile_window_open", ["window": entry.displayName, "profile": profile]))
+        let before = AX.windows(for: app)
+        let hasWindow = before.contains { BrowserSupport.profile(fromTitle: $0.title, bundleID: bundleID) == profile }
+        func failed(_ reason: String, _ report: inout ApplyReport) -> AXWindow? {
+            report.notes.append(L("report.profile_window_failed", ["app": entry.appName, "profile": profile, "reason": reason]))
+            return nil
+        }
+        guard let item = BrowserSupport.profileMenuItem(of: app, named: profile) else {
+            return failed(L("report.reason_profile_menu"), &report)
+        }
+        AXUIElementPerformAction(item, kAXPressAction as CFString)
+        if hasWindow {
+            // The profile's window came forward; a new window opens in the profile of the front window
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let newWindowItem = BrowserSupport.newWindowMenuItem(of: app) else {
+                return failed(L("report.reason_new_window_item"), &report)
+            }
+            AXUIElementPerformAction(newWindowItem, kAXPressAction as CFString)
+        }
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let fresh = AX.windows(for: app).first(where: { w in
+                !before.contains { AX.isSame($0.element, w.element) }
+                    && BrowserSupport.profile(fromTitle: w.title, bundleID: bundleID) == profile
+            }) else { continue }
+            try? await Task.sleep(for: .milliseconds(300))
+            ApplyLog.write(L("log.profile_window_done", ["window": entry.displayName, "profile": profile, "name": fresh.title]))
+            report.notes.append(L("report.profile_window_opened", ["app": entry.appName, "profile": profile]))
+            if let url, !url.isEmpty { showPage(url, in: fresh, app: app, activateTabs: activateTabs, entry: entry) }
+            return fresh
+        }
+        return failed(L("report.reason_no_window_appeared"), &report)
+    }
+
+    /// Show a page in a window that was just opened for a profile: its tab when the window already has one (the
+    /// profile may have restored its last session), otherwise in the empty new tab or a new tab.
+    @MainActor
+    private func showPage(_ url: String, in window: AXWindow, app: NSRunningApplication, activateTabs: Bool, entry: WindowEntry) {
+        do {
+            let listed = try BrowserSupport.listWindows(app: app)
+            guard let wi = BrowserSupport.pair(listed, with: [window]).keys.first else {
+                ApplyLog.write(L("log.tab_window_unmapped", ["window": entry.displayName, "name": window.title, "count": "1"]))
+                return
+            }
+            let scripted = listed[wi]
+            if let tab = scripted.tabs.first(where: { BrowserSupport.matches(saved: url, candidate: $0.url) }) {
+                if !tab.isActive && activateTabs { try BrowserSupport.activate(windowID: scripted.id, tabIndex: tab.index, app: app) }
+                return
+            }
+            try BrowserSupport.showPage(url, windowID: scripted.id, app: app)
+        } catch {
+            let message = (error as? BrowserSupport.ScriptError)?.message ?? error.localizedDescription
+            ApplyLog.write(L("log.script_failed", ["window": entry.displayName, "error": message]))
+        }
     }
 
     /// Open the page in a new window and wait for it to appear
