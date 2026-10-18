@@ -175,6 +175,12 @@
       "ja": "変更",
       "zh-Hans": "更改"
     },
+    "common.ok": {
+      "ko": "확인",
+      "en": "OK",
+      "ja": "OK",
+      "zh-Hans": "好"
+    },
     "layout.copy_suffix": {
       "ko": " 복사본",
       "en": " copy",
@@ -660,6 +666,114 @@
       "en": "Each layout records the monitor setup it was saved on. Layouts for the current setup are listed first; applying a layout from another setup moves each window to the monitor it was on.",
       "ja": "各配置は保存時のモニター構成とともに記録されます。メニューとリストでは現在の構成に合う配置が先に表示され、他の構成の配置を適用すると各ウィンドウがあったモニターを探して位置を合わせます。",
       "zh-Hans": "每个布局都会记录保存时的显示器配置。菜单和列表中优先显示与当前配置匹配的布局；应用其他配置的布局时，会把每个窗口移到它原来所在的显示器。"
+    },
+    "remove.section": {
+      "ko": "삭제",
+      "en": "Remove",
+      "ja": "削除",
+      "zh-Hans": "移除"
+    },
+    "remove.cleanup_button": {
+      "ko": "이전 버전 흔적 정리…",
+      "en": "Clean Up Older Versions…",
+      "ja": "以前のバージョンの残りを整理…",
+      "zh-Hans": "清理旧版本残留…"
+    },
+    "remove.uninstall_button": {
+      "ko": "{app} 삭제…",
+      "en": "Uninstall {app}…",
+      "ja": "{app} を削除…",
+      "zh-Hans": "卸载 {app}…"
+    },
+    "remove.note": {
+      "ko": "모든 항목은 휴지통으로 옮겨지고, 휴지통을 비우면 완전히 지워집니다. 흔적 정리는 지금 쓰는 앱과 배치를 건드리지 않습니다.",
+      "en": "Everything is moved to the Trash; empty the Trash to delete it for good. Cleaning up leaves the current app and your layouts alone.",
+      "ja": "すべてゴミ箱に移され、ゴミ箱を空にすると完全に削除されます。整理では現在のアプリと配置には触れません。",
+      "zh-Hans": "所有项目都会移到废纸篓，清倒废纸篓即可彻底删除。清理不会影响当前的应用和布局。"
+    },
+    "remove.uninstall_title": {
+      "ko": "{app}을(를) 삭제할까요?",
+      "en": "Uninstall {app}?",
+      "ja": "{app} を削除しますか？",
+      "zh-Hans": "要卸载 {app} 吗？"
+    },
+    "remove.uninstall_body": {
+      "ko": "로그인 시 실행을 끄고 손쉬운 사용·자동화 권한 항목을 지운 뒤, 앱과 설정, 저장한 배치와 적용 로그를 휴지통으로 옮깁니다. 이전 버전이 남긴 것도 함께 옮깁니다 ({count}개):",
+      "en": "Launch at login is turned off and the Accessibility and Automation permission entries are removed; then the app, its settings, the saved layouts and the apply log are moved to the Trash, together with anything older versions left behind ({count} items):",
+      "ja": "ログイン時の起動をオフにし、アクセシビリティとオートメーションの権限項目を削除してから、アプリ、設定、保存した配置と適用ログを、以前のバージョンが残したものも含めてゴミ箱に移します（{count} 項目）:",
+      "zh-Hans": "将关闭登录时启动并移除辅助功能和自动化权限条目，然后把应用、设置、已保存的布局和应用日志（包括旧版本留下的内容）移到废纸篓（{count} 项）："
+    },
+    "remove.keep_layouts": {
+      "ko": "저장한 배치와 적용 로그는 남기기",
+      "en": "Keep the saved layouts and the apply log",
+      "ja": "保存した配置と適用ログは残す",
+      "zh-Hans": "保留已保存的布局和应用日志"
+    },
+    "remove.uninstall_confirm": {
+      "ko": "삭제",
+      "en": "Uninstall",
+      "ja": "削除",
+      "zh-Hans": "卸载"
+    },
+    "remove.cleanup_title": {
+      "ko": "이전 버전이 남긴 흔적을 정리할까요?",
+      "en": "Clean up what older versions left behind?",
+      "ja": "以前のバージョンが残したものを整理しますか？",
+      "zh-Hans": "要清理旧版本留下的内容吗？"
+    },
+    "remove.cleanup_body": {
+      "ko": "예전 버전이 쓰던 설정과 캐시로, 지금은 쓰이지 않습니다. 휴지통으로 옮깁니다 ({count}개):",
+      "en": "These settings and caches belong to earlier versions and are no longer used. They are moved to the Trash ({count} items):",
+      "ja": "以前のバージョンが使っていた設定とキャッシュで、現在は使われていません。ゴミ箱に移します（{count} 項目）:",
+      "zh-Hans": "这些设置和缓存属于旧版本，现已不再使用，将移到废纸篓（{count} 项）："
+    },
+    "remove.cleanup_confirm": {
+      "ko": "휴지통으로 옮기기",
+      "en": "Move to Trash",
+      "ja": "ゴミ箱に移動",
+      "zh-Hans": "移到废纸篓"
+    },
+    "remove.cleanup_nothing": {
+      "ko": "이전 버전이 남긴 흔적이 없습니다.",
+      "en": "Nothing is left over from older versions.",
+      "ja": "以前のバージョンが残したものはありません。",
+      "zh-Hans": "没有旧版本留下的内容。"
+    },
+    "remove.more": {
+      "ko": "…외 {count}개",
+      "en": "…and {count} more",
+      "ja": "…ほか {count} 項目",
+      "zh-Hans": "…以及另外 {count} 项"
+    },
+    "remove.done_title": {
+      "ko": "완료",
+      "en": "Done",
+      "ja": "完了",
+      "zh-Hans": "完成"
+    },
+    "remove.done_body": {
+      "ko": "{count}개를 휴지통으로 옮겼습니다. 휴지통을 비우면 완전히 지워집니다.",
+      "en": "{count} items were moved to the Trash. Empty the Trash to delete them for good.",
+      "ja": "{count} 項目をゴミ箱に移しました。ゴミ箱を空にすると完全に削除されます。",
+      "zh-Hans": "已将 {count} 项移到废纸篓。清倒废纸篓即可彻底删除。"
+    },
+    "remove.done_failed": {
+      "ko": "옮기지 못한 항목:\n{list}",
+      "en": "These could not be moved:\n{list}",
+      "ja": "移動できなかった項目:\n{list}",
+      "zh-Hans": "无法移动：\n{list}"
+    },
+    "remove.done_permissions": {
+      "ko": "권한 항목은 지우지 못했습니다. 시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용과 자동화에서 {app} 항목을 직접 지워 주세요.",
+      "en": "The permission entries could not be removed. Remove {app} under System Settings › Privacy & Security › Accessibility and Automation yourself.",
+      "ja": "権限項目を削除できませんでした。システム設定 › プライバシーとセキュリティ › アクセシビリティとオートメーションで {app} を削除してください。",
+      "zh-Hans": "无法移除权限条目。请在“系统设置 › 隐私与安全性 › 辅助功能”和“自动化”中自行移除 {app}。"
+    },
+    "remove.done_quit": {
+      "ko": "확인을 누르면 앱이 종료됩니다.",
+      "en": "The app quits when you click OK.",
+      "ja": "OK を押すとアプリが終了します。",
+      "zh-Hans": "点击“好”后应用将退出。"
     },
     "general.data": {
       "ko": "배치 데이터",
@@ -1182,6 +1296,30 @@
       "en": "no window there; this app's windows: {frames}",
       "ja": "その位置にウィンドウなし。このアプリのウィンドウ: {frames}",
       "zh-Hans": "该位置没有窗口；此应用的窗口：{frames}"
+    },
+    "log.remove_preview": {
+      "ko": "=== 삭제 미리보기 (읽기만 함): {mode}",
+      "en": "=== Removal preview (read-only): {mode}",
+      "ja": "=== 削除のプレビュー（読み取りのみ）: {mode}",
+      "zh-Hans": "=== 移除预览（只读）：{mode}"
+    },
+    "log.remove_item": {
+      "ko": "  휴지통으로: {path}",
+      "en": "  to the Trash: {path}",
+      "ja": "  ゴミ箱へ: {path}",
+      "zh-Hans": "  移到废纸篓：{path}"
+    },
+    "log.remove_mode_cleanup": {
+      "ko": "이전 버전 흔적 정리",
+      "en": "clean up older versions",
+      "ja": "以前のバージョンの整理",
+      "zh-Hans": "清理旧版本残留"
+    },
+    "log.remove_mode_uninstall": {
+      "ko": "삭제",
+      "en": "uninstall",
+      "ja": "削除",
+      "zh-Hans": "卸载"
     },
     "log.check_start": {
       "ko": "=== 브라우저 탭 확인 (읽기만 함)",

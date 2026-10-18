@@ -106,6 +106,19 @@ struct GeneralSettingsView: View {
                     Text(err).foregroundStyle(.red).font(.caption)
                 }
             }
+
+            Section(L("remove.section")) {
+                HStack {
+                    Button(L("remove.cleanup_button")) { Uninstaller.run(.leftovers) }
+                    Spacer()
+                    Button(L("remove.uninstall_button", ["app": L("app.name")]), role: .destructive) {
+                        Uninstaller.run(.uninstall)
+                    }
+                }
+                Text(L("remove.note"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .navigationTitle(L("sidebar.general"))
