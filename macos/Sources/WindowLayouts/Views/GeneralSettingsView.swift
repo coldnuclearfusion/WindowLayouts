@@ -111,7 +111,7 @@ struct GeneralSettingsView: View {
                 HStack {
                     Button(L("remove.cleanup_button")) { Uninstaller.run(.leftovers) }
                     Spacer()
-                    Button(L("remove.uninstall_button", ["app": L("app.name")]), role: .destructive) {
+                    Button(L("remove.uninstall_button"), role: .destructive) {
                         Uninstaller.run(.uninstall)
                     }
                 }

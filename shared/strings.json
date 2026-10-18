@@ -668,10 +668,10 @@
       "zh-Hans": "每个布局都会记录保存时的显示器配置。菜单和列表中优先显示与当前配置匹配的布局；应用其他配置的布局时，会把每个窗口移到它原来所在的显示器。"
     },
     "remove.section": {
-      "ko": "삭제",
-      "en": "Remove",
-      "ja": "削除",
-      "zh-Hans": "移除"
+      "ko": "앱 제거",
+      "en": "Uninstall",
+      "ja": "アプリの削除",
+      "zh-Hans": "卸载应用"
     },
     "remove.cleanup_button": {
       "ko": "이전 버전 흔적 정리…",
@@ -680,10 +680,10 @@
       "zh-Hans": "清理旧版本残留…"
     },
     "remove.uninstall_button": {
-      "ko": "{app} 삭제…",
-      "en": "Uninstall {app}…",
-      "ja": "{app} を削除…",
-      "zh-Hans": "卸载 {app}…"
+      "ko": "앱 제거하기…",
+      "en": "Uninstall App…",
+      "ja": "アプリを削除…",
+      "zh-Hans": "卸载应用…"
     },
     "remove.note": {
       "ko": "모든 항목은 휴지통으로 옮겨지고, 휴지통을 비우면 완전히 지워집니다. 흔적 정리는 지금 쓰는 앱과 배치를 건드리지 않습니다.",
@@ -692,10 +692,10 @@
       "zh-Hans": "所有项目都会移到废纸篓，清倒废纸篓即可彻底删除。清理不会影响当前的应用和布局。"
     },
     "remove.uninstall_title": {
-      "ko": "{app}을(를) 삭제할까요?",
-      "en": "Uninstall {app}?",
-      "ja": "{app} を削除しますか？",
-      "zh-Hans": "要卸载 {app} 吗？"
+      "ko": "{app} 앱을 제거할까요?",
+      "en": "Uninstall the {app} app?",
+      "ja": "アプリ「{app}」を削除しますか？",
+      "zh-Hans": "要卸载“{app}”应用吗？"
     },
     "remove.uninstall_body": {
       "ko": "로그인 시 실행을 끄고 손쉬운 사용·자동화 권한 항목을 지운 뒤, 앱과 설정, 저장한 배치와 적용 로그를 휴지통으로 옮깁니다. 이전 버전이 남긴 것도 함께 옮깁니다 ({count}개):",
@@ -710,7 +710,7 @@
       "zh-Hans": "保留已保存的布局和应用日志"
     },
     "remove.uninstall_confirm": {
-      "ko": "삭제",
+      "ko": "제거",
       "en": "Uninstall",
       "ja": "削除",
       "zh-Hans": "卸载"
