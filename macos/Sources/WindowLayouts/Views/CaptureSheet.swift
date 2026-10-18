@@ -199,14 +199,19 @@ struct CaptureSheet: View {
     }
 
     private func save() {
-        let entries = request.windows
-            .filter { selected.contains($0.id) }
-            .map { $0.makeEntry(includeTitle: saveTitles, includeURL: saveURLs, includeProfile: saveProfiles) }
+        let chosen = request.windows.filter { selected.contains($0.id) }
+        let entries = chosen.map { $0.makeEntry(includeTitle: saveTitles, includeURL: saveURLs, includeProfile: saveProfiles) }
+        let watched = chosen.map { (bundleID: $0.bundleID, element: $0.element, frame: $0.frame) }
         if let target = request.targetLayoutID {
             store.append(entries, to: target)
+            // Added to the layout that is currently checked: its new windows are watched too
+            if store.lastAppliedID == target { PlacementWatcher.shared.extend(with: watched) }
         } else {
             let layout = WindowLayout(name: trimmedName, windows: entries, displayConfig: request.displayConfig)
             store.add(layout)
+            // Saved from the windows as they are, so it is the current layout (checked in the menu while they stay put)
+            store.lastAppliedID = layout.id
+            PlacementWatcher.shared.adopt(watched)
             appState.selection = .layout(layout.id)
         }
         dismiss()

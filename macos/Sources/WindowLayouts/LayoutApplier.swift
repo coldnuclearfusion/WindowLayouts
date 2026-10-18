@@ -623,25 +623,33 @@ final class LayoutApplier {
     }
 
     /// Returns a copy with the saved entries updated to the current window positions and the monitor setup set to the current one.
-    func refreshedFrames(_ layout: WindowLayout) -> (layout: WindowLayout, updated: Int) {
+    /// Returns a copy with the saved entries updated to the current window positions and the monitor setup set to the
+    /// current one, plus the windows of the enabled entries (to be watched, as the layout now matches them).
+    func refreshedFrames(_ layout: WindowLayout)
+        -> (layout: WindowLayout, updated: Int, windows: [(bundleID: String, element: AXUIElement, frame: CGRect)]) {
         var copy = layout
         var updated = 0
+        var watched: [(bundleID: String, element: AXUIElement, frame: CGRect)] = []
         let config = DisplayConfig.current()
         copy.displayConfig = config
         let grouped = Dictionary(grouping: layout.windows.indices) { layout.windows[$0].bundleID }
         for (bundleID, indices) in grouped {
             let windows = runningApps(bundleID: bundleID).flatMap { AX.windows(for: $0) }
             let entries = indices.map { layout.windows[$0] }
-            for (i, match) in zip(indices, WindowMatcher.match(entries: entries, windows: windows)) {
+            let matched = BrowserSupport.supportsProfiles(bundleID)
+                ? Self.matchByProfile(entries: entries, windows: windows) { BrowserSupport.profile(fromTitle: $0.title, bundleID: bundleID) }
+                : WindowMatcher.match(entries: entries, windows: windows)
+            for (i, match) in zip(indices, matched) {
                 if let w = match.window {
                     copy.windows[i].frame = w.frame
                     let center = CGPoint(x: w.frame.midX, y: w.frame.midY)
                     copy.windows[i].displayID = config.display(containing: center)?.id
                     updated += 1
+                    if copy.windows[i].enabled { watched.append((bundleID, w.element, w.frame)) }
                 }
             }
         }
-        return (copy, updated)
+        return (copy, updated, watched)
     }
 
     // MARK: - Launching apps

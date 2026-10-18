@@ -103,12 +103,31 @@ final class PlacementWatcher {
                 newPlacements.append(Placement(bundleID: item.bundleID, frame: frame))
                 newElements.append(item.element)
             }
-            placements = newPlacements
-            elements = newElements
-            save()
-            inPlace = !newPlacements.isEmpty
-            observeApps()
+            begin(newPlacements, newElements)
         }
+    }
+
+    /// A layout was just saved from the open windows, or refreshed to them: it is the current layout now. Its windows
+    /// are watched at the frames that were saved, so the check stays off if one of them has moved in the meantime.
+    func adopt(_ windows: [(bundleID: String, element: AXUIElement, frame: CGRect)]) {
+        stop()
+        begin(windows.map { Placement(bundleID: $0.bundleID, frame: $0.frame) }, windows.map { $0.element })
+    }
+
+    /// Open windows were added to the current layout: watch them as well
+    func extend(with windows: [(bundleID: String, element: AXUIElement, frame: CGRect)]) {
+        guard !windows.isEmpty else { return }
+        generation += 1
+        begin(placements + windows.map { Placement(bundleID: $0.bundleID, frame: $0.frame) },
+              elements + windows.map { $0.element })
+    }
+
+    private func begin(_ newPlacements: [Placement], _ newElements: [AXUIElement?]) {
+        placements = newPlacements
+        elements = newElements
+        save()
+        observeApps()
+        check()
     }
 
     /// At launch: watch the placements saved by the last apply. For a layout applied by a version that did not save

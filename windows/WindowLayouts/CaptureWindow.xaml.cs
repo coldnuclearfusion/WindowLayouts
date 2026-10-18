@@ -176,6 +176,7 @@ public partial class CaptureWindow : Window
             var layout = new WindowLayout { Name = NameBox.Text.Trim(), DisplayConfig = _request.DisplayConfig };
             foreach (var en in entries) layout.Windows.Add(en);
             store.Add(layout);
+            store.LastAppliedId = layout.Id;   // saved from the windows as they are, so it is the current layout
             NewLayoutId = layout.Id;
         }
         DialogResult = true;

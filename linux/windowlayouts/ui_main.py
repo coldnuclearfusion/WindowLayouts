@@ -585,6 +585,8 @@ class MainWindow(Gtk.Window):
         if self.current is None:
             return
         n = self.app.applier.refresh_frames(self.app.x, self.current)
+        if n > 0:
+            self.store.last_applied_id = self.current.id   # the layout now matches the open windows
         self.store.save()
         self._refresh_display_row()
         self._refresh_table()

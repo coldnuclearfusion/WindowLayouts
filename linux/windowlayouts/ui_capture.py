@@ -168,5 +168,7 @@ class CaptureDialog(Gtk.Dialog):
         else:
             layout = WindowLayout(name=self.name_entry.get_text().strip(), display_config=self.request.display_config,
                                   windows=entries)
+            # Saved from the windows as they are, so it is the current layout and gets the tray menu's check
+            self.store.last_applied_id = layout.id
             self.store.add(layout)
             self.new_layout_id = layout.id

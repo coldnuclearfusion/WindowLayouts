@@ -195,6 +195,11 @@ struct LayoutDetailView: View {
                 Button {
                     let result = applier.refreshedFrames(layout)
                     store.replace(result.layout)
+                    // The layout now matches the open windows, so it is the current layout
+                    if !result.windows.isEmpty {
+                        store.lastAppliedID = layoutID
+                        PlacementWatcher.shared.adopt(result.windows)
+                    }
                     refreshMessage = L("detail.refreshed", ["count": String(result.updated)])
                 } label: {
                     Label(L("detail.refresh"), systemImage: "arrow.clockwise")

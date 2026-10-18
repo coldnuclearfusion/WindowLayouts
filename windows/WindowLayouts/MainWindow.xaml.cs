@@ -420,6 +420,7 @@ public partial class MainWindow : Window
     {
         if (_current == null) return;
         int updated = LayoutApplier.Shared.RefreshFrames(_current);
+        if (updated > 0) LayoutStore.Shared.LastAppliedId = _current.Id;   // the layout now matches the open windows
         LayoutStore.Shared.Save();
         RefreshMonitorNames();
         RefreshDisplayRow();
