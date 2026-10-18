@@ -1,5 +1,7 @@
 # WindowLayouts
 
+**English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [中文（简体）](README.zh-Hans.md)
+
 Save window layouts and restore them in one click from the menu bar.
 
 - **Save** the current arrangement of windows, choosing which apps and windows to include.
