@@ -28,7 +28,7 @@ Or run from the checkout without installing: `python3 -m windowlayouts` inside `
 
 ## What it does
 
-Same feature set as the macOS app, the same UI languages (Korean, English, Japanese, Simplified Chinese, following `LANGUAGE`/`LC_ALL`/`LANG` by default and selectable under *General*) and the same `layouts.json` format:
+Most of the macOS app's features (see [Not in this version](#not-in-this-version)), the same UI languages (Korean, English, Japanese, Simplified Chinese, following `LANGUAGE`/`LC_ALL`/`LANG` by default and selectable under *General*) and the same `layouts.json` format:
 
 - **Save the current layout** from the tray menu or the settings window, choosing windows per app; optionally keep window titles.
 - **Restore in one click** from the tray menu. Windows are unmaximized/unminimized, moved and resized, and raised in the saved order (the first row ends up in front and focused). The layout applied last is checked in the menu, and the check is remembered across restarts.
@@ -40,6 +40,15 @@ Same feature set as the macOS app, the same UI languages (Korean, English, Japan
 - **Starts at login** via `~/.config/autostart`, lives in the tray.
 - **Command line:** `windowlayouts --apply "NAME"` applies a layout (a second instance forwards the command to the running one over a Unix socket); `--settings` opens the window; `--background` starts without opening the window.
 - **Languages.** Strings come from `../shared/strings.json`; `install.sh` copies it into the package as `assets/strings.json`, and running from the checkout reads the shared file directly. Changing the language in *General* rebuilds the tray menu and reopens the settings window in the new language.
+
+## Not in this version
+
+What the macOS app does and this port does not:
+
+- **Unchecking a layout whose windows moved.** The menu checks the layout applied last, whether or not its windows are still in place.
+- **Pages in tabs.** Tab addresses cannot be read at all, so a page is recognized only by the site name in a window title, and there is no per-layout option for bringing a tab to the front.
+- **Chrome profiles.** Not saved, and not used when applying.
+- **Uninstall.** There is no uninstall command. Turn off *Launch at login* under *General* (this removes `~/.config/autostart/windowlayouts.desktop`), quit the app, and delete `~/.local/share/windowlayouts`, `~/.local/bin/windowlayouts`, `~/.local/share/applications/windowlayouts.desktop`, `~/.local/share/icons/hicolor/256x256/apps/windowlayouts.png` and `~/.config/windowlayouts` (layouts, apply log and settings).
 
 ## How windows are placed
 
@@ -62,7 +71,8 @@ windowlayouts/
   app.py          wires store, applier, tray, windows; handles --apply
   models.py       WindowLayout, WindowEntry, DisplayConfig (same JSON as other platforms)
   l10n.py         loads strings.json, resolves the language, t("key") lookup
-  prefs.py        small settings (language, capture options) in prefs.json
+  paths.py        file locations (~/.config/windowlayouts, the single-instance socket)
+  prefs.py        small settings (language, capture options, last applied layout) in prefs.json
   store.py        JSON persistence, file monitoring, grouping by monitor setup
   x11.py          EWMH: list windows, frames, move/resize with verification, activate, RandR monitors, EDID
   apps.py         WM_CLASS → .desktop entry / executable, launch, running check

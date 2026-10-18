@@ -4,13 +4,14 @@ The macOS version of [WindowLayouts](../README.md): a menu bar app that saves wi
 
 ## What it does
 
-- **Save the current layout.** Menu bar › *Save current windows…* (or the **+** button in the settings window) lists every open window grouped by app. Pick the windows to include, name the layout, save. Options: store window titles (used to tell apart several windows of one app), for browsers the page address of the active tab, and for Chrome the profile each window belongs to.
+- **Save the current layout.** Menu bar › *Save Current Windows…* (or the **+** button in the settings window) lists every open window grouped by app. Pick the windows to include, name the layout, save. Finder starts unchecked, since it always runs in the background. Options: store window titles (used to tell apart several windows of one app), for browsers the page address of the active tab, and for Chrome the profile each window belongs to.
 - **Restore in one click.** Layouts are listed at the top of the menu bar menu. Clicking one moves and resizes the windows, unminimizes them, and by default raises them in the saved order (top row of the table ends up in front). The applied layout carries the menu's check mark while its windows stay where it put them: moving, resizing, minimizing or closing one of them removes the check, and putting the window back brings the check back (window order and tabs are not watched). Nothing is polled: macOS reports through Accessibility whenever one of these windows moves, resizes, is minimized, restored or closed, or the app opens a new window, and the windows are compared once such events pause. A layout that has just been saved from the open windows, or updated with *Update from Current Positions*, counts as applied: it is checked right away, as long as its windows have not moved since. The placements are remembered across restarts, so after a restart the check returns once the apps have reopened their windows in the same places. Choosing a layout again puts its windows back in place.
 - **Edit by hand.** The settings window (*Settings…*) has a table per layout. The switch at the start of each row decides whether that window takes part when the layout is applied; a switched-off row is dimmed but kept. Title, page address, matching mode, position and size are edited in place, rows can be reordered, and positions can be re-read from the live windows. *Edit* turns on edit mode, which adds a check column for choosing rows to delete and the button for adding currently open windows; in that sheet, apps that are already in the layout start unchecked (so only new windows get added), and so does Finder, which is always running in the background. The JSON file can also be edited directly; the app reloads it when it changes.
 - **Per monitor setup.** Every layout records the display configuration it was saved on. The menu and the sidebar show layouts for the current setup first; layouts from other setups sit in a *Other setup* submenu. Applying one of those remaps each window to the display it was on (by display id) and clamps it to the screen when that display is missing. A layout can also be marked *any setup*.
 - **Multiple windows per app.** Windows are matched by exact title, then by word overlap after removing words shared by all windows of that app (for example a browser suffix), then by order. Per row you can force *title only* or *order only*.
 - **Apps that aren't running, or have no window.** macOS keeps apps alive after the last window is closed. Both cases are handled by the layout's policy: *ask every time*, *launch and open windows*, or *only place existing windows*. Launching sends the app a reopen event, which makes it create a window, and the app waits for it before placing.
-- **Browser pages.** A browser row can carry a page address. On apply, the app looks for a window that has a tab with that address, activates the tab and places that window; if there is none, it opens the page in a new window and places it. Safari and Chromium browsers (Chrome, Edge, Brave, Vivaldi) expose all tabs through AppleScript, so tabs hidden behind other tabs are found too — macOS asks once for Automation permission. The same lookup is used for browser rows that have a title but no address: when no window title matches, a tab whose title matches is activated and its window is used. Firefox and others only expose the active tab of each window through the Accessibility API, so background tabs are not detected there and a new window is opened instead. New windows are opened with the browser's `--new-window` flag (Safari: AppleScript). Whether a tab found behind another tab is brought to the front is a setting of each layout (*Bring a browser page to the front when it is in a tab behind another one*, on by default); with it off, the window that contains the tab is still the one that gets placed, but the tab in view stays as it is. **Chrome profiles.** With several profiles, Chrome ends every window title with the profile name ("… - Chrome - Work"). With *Also save which profile each Chrome window belongs to* on when saving, a row keeps that profile (shown next to the app name in the table) and only uses windows of that profile, in tab search as well as in title and order matching. When the profile has no free window, the app opens one through Chrome's Profiles menu, or, if all of that profile's windows are already used by other rows, brings the profile forward and uses File › New Window; the row's page is then shown in the new window. This needs no extra permission: Chrome's own profile list is not read, since macOS protects other apps' data. Each window is given to one row only: when the matching tab sits in a window that another row of the layout already uses, the page is opened in a new window instead of pulling that tab forward. Every tab lookup (tabs listed, tab chosen, AppleScript errors) is written to the apply log.
+- **Browser pages.** A browser row can carry a page address. On apply, the app looks for a window that has a tab with that address, activates the tab and places that window; if there is none, it opens the page in a new window and places it. Safari and Chromium browsers (Chrome, Edge, Brave, Vivaldi) expose all tabs through AppleScript, so tabs hidden behind other tabs are found too — macOS asks once for Automation permission. The same lookup is used for browser rows that have a title but no address: when no window title matches, a tab whose title matches is activated and its window is used. Firefox and others only expose the active tab of each window through the Accessibility API, so background tabs are not detected there and a new window is opened instead. New windows are opened with the browser's `--new-window` flag (Safari: AppleScript). Whether a tab found behind another tab is brought to the front is a setting of each layout (*Bring a browser page to the front when it is in a tab behind another one*, on by default); with it off, the window that contains the tab is still the one that gets placed, but the tab in view stays as it is. Each window is given to one row only: when the matching tab sits in a window that another row of the layout already uses, the page is opened in a new window instead of pulling that tab forward. Every tab lookup (tabs listed, tab chosen, AppleScript errors) is written to the apply log.
+- **Chrome profiles.** With several profiles, Chrome ends every window title with the profile name ("… - Chrome - Work"). With *Also save which profile each Chrome window belongs to* on when saving, a row keeps that profile (shown next to the app name in the table) and only uses windows of that profile, in tab search as well as in title and order matching. When the profile has no free window, the app opens one through Chrome's Profiles menu, or, if all of that profile's windows are already used by other rows, brings the profile forward and uses File › New Window; the row's page is then shown in the new window. This needs no extra permission: Chrome's own profile list is not read, since macOS protects other apps' data.
 - **Uninstall.** *General › Uninstall* has two buttons. *Clean Up Older Versions…* moves settings and caches that earlier versions left under other identifiers to the Trash. *Uninstall App…* turns off launch at login, removes the app's Accessibility and Automation permission entries, and moves its settings, the saved layouts and apply log (unless *Keep the saved layouts and the apply log* is checked) and the app itself to the Trash. Both list what they will move and ask first. `open "windowlayouts://check-uninstall"` writes both lists to the apply log without moving anything.
 - **Starts at login, lives in the menu bar.** No Dock icon. Toggle *Launch at login* under *General*.
 - **Automation.** `open "windowlayouts://apply?name=Coding"` (or `?id=<layout UUID>`) applies a layout from a terminal, Shortcuts, or a hotkey app.
@@ -124,24 +125,27 @@ Don't copy a built `.app` to another Mac over AirDrop or the like: the Apple Dev
 ## Layout of the source
 
 ```
-Package.swift           Swift package, macOS 15+
-Resources/Info.plist    LSUIElement (menu bar only), icon, usage descriptions, windowlayouts:// URL scheme
-Resources/AppIcon.icns  app icon (tools/make-icon.sh)
-Resources/*.lproj       localized display name and usage descriptions
-../shared/strings.json  UI strings (ko/en/ja/zh-Hans), copied into the bundle by build.sh
+Package.swift             Swift package, macOS 15+
+Resources/Info.plist      LSUIElement (menu bar only), icon, usage descriptions, windowlayouts:// URL scheme
+Resources/AppIcon.icns    app icon (tools/make-icon.sh)
+Resources/*.lproj         localized display name and usage descriptions
+../shared/strings.json    UI strings (ko/en/ja/zh-Hans), copied into the bundle by build.sh
 Sources/WindowLayouts/
-  App.swift             MenuBarExtra + settings window scene
-  L10n.swift            loads strings.json, resolves the language, L("key") lookup
-  Models.swift          WindowLayout, WindowEntry, DisplayConfig, policies
-  LayoutStore.swift     JSON persistence, file watching, grouping by monitor setup
-  SystemMonitor.swift   Accessibility permission and display change monitoring
-  AX.swift              Accessibility API: list windows, verified move/resize with retries, page URL of a browser window
-  ApplyLog.swift        apply.log writer
-  WindowCapture.swift   collect open windows front to back
-  LayoutApplier.swift   matching, launching/reopening apps, browser page resolution, raising
-  BrowserSupport.swift  browser detection, URL matching, AppleScript tab search, new windows
-  Views/                menu, main window, layout editor, capture sheet, general settings
-build.sh / install.sh   build the .app bundle and sign it / install to /Applications
-make-signing-cert.sh    optional local self-signed certificate
+  App.swift               MenuBarExtra + settings window scene, windowlayouts:// URLs
+  L10n.swift              loads strings.json, resolves the language, L("key") lookup
+  Models.swift            WindowLayout, WindowEntry, DisplayConfig, policies
+  LayoutStore.swift       JSON persistence, file watching, grouping by monitor setup
+  SystemMonitor.swift     Accessibility permission and display change monitoring
+  Accessibility.swift     Accessibility permission check and prompt, link to System Settings
+  AX.swift                Accessibility API: list windows, verified move/resize with retries, page URL of a browser window
+  ApplyLog.swift          apply.log writer
+  WindowCapture.swift     collect open windows front to back
+  LayoutApplier.swift     matching, launching/reopening apps, browser page resolution, raising
+  BrowserSupport.swift    browser detection, URL matching, AppleScript tab search, Chrome profiles, new windows
+  PlacementWatcher.swift  watches the applied layout's windows through Accessibility events, for the menu check
+  Uninstaller.swift       General › Uninstall: uninstalling the app, cleaning up older versions
+  Views/                  menu, main window, layout editor, capture sheet, general settings
+build.sh / install.sh     build the .app bundle and sign it / install to /Applications
+make-signing-cert.sh      optional local self-signed certificate
 ```
 

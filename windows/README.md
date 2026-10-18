@@ -6,7 +6,7 @@ The Windows version of [WindowLayouts](../README.md): a tray app that saves wind
 
 ## What it does
 
-Same feature set as the macOS app, the same UI languages (Korean, English, Japanese, Simplified Chinese, following the system language by default and selectable under *General*) and the same `layouts.json` format:
+Most of the macOS app's features (see [Not in this version](#not-in-this-version)), the same UI languages (Korean, English, Japanese, Simplified Chinese, following the system language by default and selectable under *General*) and the same `layouts.json` format:
 
 - **Save the current layout** from the tray menu (*Save Current Windows…*) or the **＋ Save** button in the settings window. Pick windows per app, name the layout, optionally keep window titles and, for browsers, the page address of the active tab.
 - **Restore in one click** from the tray menu (left or right click). Windows are restored from minimized/maximized state, moved and resized, and raised in the saved order. The layout applied last is checked in the menu, and the check is remembered across restarts.
@@ -18,6 +18,15 @@ Same feature set as the macOS app, the same UI languages (Korean, English, Japan
 - **Starts at login** (HKCU Run key), lives in the notification area.
 - **Command line:** `WindowLayouts.exe --apply "NAME"` (or a layout id) applies a layout; `--settings` opens the window. A second instance forwards the command to the running one through a named pipe.
 - **Languages.** Strings come from `..\..\shared\strings.json`, embedded into the executable by the project file. Changing the language in *General* recreates the settings window in the new language; the tray menu is rebuilt on every open.
+
+## Not in this version
+
+What the macOS app does and this port does not:
+
+- **Unchecking a layout whose windows moved.** The menu checks the layout applied last, whether or not its windows are still in place.
+- **Pages in tabs behind other tabs.** Only the address of each window's active tab can be read, so there is no per-layout option for bringing such a tab to the front.
+- **Chrome profiles.** Not saved, and not used when applying.
+- **Uninstall.** There is no uninstall command. Turn off *Launch at login* under *General* (this removes the Run key value), quit the app, and delete `%LOCALAPPDATA%\Programs\WindowLayouts` (the app), `%LOCALAPPDATA%\WindowLayouts` (layouts and apply log) and the registry key `HKCU\Software\WindowLayouts` (settings).
 
 ## Build and install
 
@@ -49,25 +58,25 @@ Every apply is logged to `%LOCALAPPDATA%\WindowLayouts\apply.log` (*General › 
 
 ```
 WindowLayouts/
-  WindowLayouts.csproj    .NET 8, WPF + WinForms (tray icon), win-x64
-  app.manifest            per-monitor DPI awareness
-  App.xaml(.cs)           startup, single instance, tray, command line
-  Models.cs               WindowLayout, WindowEntry, DisplayConfig, policies, JSON options
-  Loc.cs                  loads the embedded strings.json, resolves the language, Loc.T("key") lookup
-  LayoutStore.cs          JSON persistence, file watching, grouping by monitor setup
-  Native.cs               Win32 bindings
-  Displays.cs             current monitor configuration
-  WindowCapture.cs        enumerate top-level windows, app identity, launching
-  WindowMatcher.cs        matching algorithm (same as macOS)
-  BrowserSupport.cs       browser detection, URL matching, address bar via UI Automation, new windows
-  LayoutApplier.cs        apply: policies, browser pages, verified placement, raising
-  ApplyLog.cs             apply.log
-  Ipc.cs                  named pipe for --apply from a second instance
-  StartupRegistration.cs  Run key
-  TrayIcon.cs             notification area icon and menu
-  MainWindow.xaml(.cs)    settings window (sidebar + layout editor + general settings)
-  CaptureWindow.xaml(.cs) choose windows to save
-  AskMissingDialog.xaml   launch / only existing / cancel
-  Assets/app.ico          icon (same artwork as macOS)
-install.ps1               publish and install
+  WindowLayouts.csproj        .NET 8, WPF + WinForms (tray icon), win-x64
+  app.manifest                per-monitor DPI awareness
+  App.xaml(.cs)               startup, single instance, tray, command line
+  Models.cs                   WindowLayout, WindowEntry, DisplayConfig, policies, JSON options
+  Loc.cs                      loads the embedded strings.json, resolves the language, Loc.T("key") lookup
+  LayoutStore.cs              JSON persistence, file watching, grouping by monitor setup, last applied layout
+  Native.cs                   Win32 bindings
+  Displays.cs                 current monitor configuration
+  WindowCapture.cs            enumerate top-level windows, app identity, launching
+  WindowMatcher.cs            matching algorithm (same as macOS)
+  BrowserSupport.cs           browser detection, URL matching, address bar via UI Automation, new windows
+  LayoutApplier.cs            apply: policies, browser pages, verified placement, raising
+  ApplyLog.cs                 apply.log
+  Ipc.cs                      named pipe for --apply from a second instance
+  StartupRegistration.cs      Run key
+  TrayIcon.cs                 notification area icon and menu
+  MainWindow.xaml(.cs)        settings window (sidebar + layout editor + general settings)
+  CaptureWindow.xaml(.cs)     choose windows to save; Prefs (settings in HKCU\Software\WindowLayouts)
+  AskMissingDialog.xaml(.cs)  launch / only existing / cancel
+  Assets/app.ico              icon (same artwork as macOS)
+install.ps1                   publish and install
 ```

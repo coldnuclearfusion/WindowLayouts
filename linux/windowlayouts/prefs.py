@@ -1,4 +1,4 @@
-"""Small settings (language, capture options): ~/.config/windowlayouts/prefs.json"""
+"""Small settings (language, capture options, last applied layout): ~/.config/windowlayouts/prefs.json"""
 from __future__ import annotations
 
 import json
