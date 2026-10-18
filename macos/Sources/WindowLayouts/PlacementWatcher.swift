@@ -147,6 +147,11 @@ final class PlacementWatcher {
         elements = Array(repeating: nil, count: restored.count)
         observeApps()
         check()
+        // Right after launch (or a change of the app's identity) Accessibility may not answer yet, so that no window is
+        // found or registered; look again a couple of times. Windows found then are registered for events.
+        for delay in [3.0, 15.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.scheduleCheck(after: 0) }
+        }
     }
 
     // MARK: - Events
@@ -177,12 +182,16 @@ final class PlacementWatcher {
 
     private func register(_ window: AXUIElement, with observer: AXObserver) {
         let refcon = Unmanaged.passUnretained(self).toOpaque()
-        var ok = true
+        var failed = false
+        var added = false
         for name in Self.windowNotifications {
-            let status = AXObserverAddNotification(observer, window, name as CFString, refcon)
-            if status != .success && status != .notificationAlreadyRegistered { ok = false }
+            switch AXObserverAddNotification(observer, window, name as CFString, refcon) {
+            case .success: added = true
+            case .notificationAlreadyRegistered: break
+            default: failed = true
+            }
         }
-        if ok { registeredWindows += 1 } else { failedRegistrations += 1 }
+        if failed { failedRegistrations += 1 } else if added { registeredWindows += 1 }
     }
 
     private func unobserveAll() {
@@ -261,6 +270,14 @@ final class PlacementWatcher {
                     scheduleCheck()
                 }
                 guard gen == generation else { return }
+                // Windows found again (after a restart, or reopened) also need their events registered
+                for (i, element) in result.elements.enumerated() {
+                    guard let element, i >= elements.count || elements[i].map({ !CFEqual($0, element) }) ?? true else { continue }
+                    var pid: pid_t = 0
+                    guard AXUIElementGetPid(element, &pid) == .success else { continue }
+                    if observers[pid] == nil { observe(pid: pid) }
+                    if let observer = observers[pid] { register(element, with: observer) }
+                }
                 elements = result.elements
                 guard result.inPlace != inPlace else { return }
                 inPlace = result.inPlace
